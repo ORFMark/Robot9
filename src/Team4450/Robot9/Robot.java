@@ -27,7 +27,7 @@ import edu.wpi.first.wpilibj.PowerDistributionPanel;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "RAC9-12.01.15-01";
+  static final String  	PROGRAM_NAME = "MRB9-12.16.15-01";
 
   // Motor pwm port assignments (0=front-left, 1=rear-left, 2=front-right, 3=rear-right)
   final RobotDrive      robotDrive = new RobotDrive(0,1,2,3);
