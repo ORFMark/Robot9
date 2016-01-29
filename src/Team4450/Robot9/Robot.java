@@ -1,6 +1,6 @@
 // 2016 competition robot code.
 // Cleaned up and reorganized in preparation for 2016.
-// For Robot "tba" built for FRC game "tba".
+// For Robot "tba" built for FRC game "First Stronghold".
 
 package Team4450.Robot9;
 
@@ -8,15 +8,16 @@ import java.io.IOException;
 import java.util.Properties;
 
 import Team4450.Lib.*;
-
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.SampleRobot;
 import edu.wpi.first.wpilibj.CameraServer;
+import edu.wpi.first.wpilibj.CANTalon.TalonControlMode;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
+import edu.wpi.first.wpilibj.CANTalon;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -27,10 +28,14 @@ import edu.wpi.first.wpilibj.PowerDistributionPanel;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "MRB9-12.16.15-01";
+  static final String  	PROGRAM_NAME = "RAC9-01.27.16-01";
 
-  // Motor pwm port assignments (0=front-left, 1=rear-left, 2=front-right, 3=rear-right)
-  final RobotDrive      robotDrive = new RobotDrive(0,1,2,3);
+  // Motor CAN ID assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
+  final CANTalon		LFTalon = new CANTalon(1);
+  final CANTalon		LRTalon = new CANTalon(2);
+  final CANTalon		RFTalon = new CANTalon(3);
+  final CANTalon		RRTalon = new CANTalon(4);
+  final RobotDrive      robotDrive = new RobotDrive(LFTalon, LRTalon, RFTalon, RRTalon);
   final Joystick        utilityStick = new Joystick(2);	// 0 old ds configuration
   final Joystick        leftStick = new Joystick(0);	// 1
   final Joystick        rightStick = new Joystick(1);	// 2
@@ -76,7 +81,14 @@ public class Robot extends SampleRobot
     		
         // IP Camera object used for vision processing.
         //camera = AxisCamera.getInstance(CAMERA_IP);
-    		
+        
+        // Initialize CAN Talons and write status to log so we can verify
+        // all the talons are connected.
+        initializeCANTalon(LFTalon);
+        initializeCANTalon(LRTalon);
+        initializeCANTalon(RFTalon);
+        initializeCANTalon(RRTalon);
+        
         robotDrive.setInvertedMotor(RobotDrive.MotorType.kFrontLeft, true);
         robotDrive.setInvertedMotor(RobotDrive.MotorType.kRearLeft, true);
     
@@ -139,7 +151,7 @@ public class Robot extends SampleRobot
    		
    		//monitorDistanceThread = new MonitorDistanceMBX(this);
    		//monitorDistanceThread.start();
-            
+   		
    		Util.consoleLog("end");
     }
     catch (Throwable e) {e.printStackTrace(Util.logPrintStream);}
@@ -246,5 +258,17 @@ public class Robot extends SampleRobot
 	  usbCameraServer = CameraServer.getInstance();
       usbCameraServer.setQuality(30);
       usbCameraServer.startAutomaticCapture(cameraName);
+  }
+
+  // Initialize and Log status indication from CANTalon. If we see an exception
+  // or a talon has low voltage value, it did not get recognized by the RR on start up.
+  
+  public void initializeCANTalon(CANTalon talon)
+  {
+	  Util.consoleLog("talon init: %s   voltage=%.1f", talon.getDescription(), talon.getBusVoltage());
+
+	  talon.clearStickyFaults();
+	  talon.enableControl();
+	  talon.changeControlMode(TalonControlMode.PercentVbus);
   }
 }

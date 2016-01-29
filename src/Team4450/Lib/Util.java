@@ -205,15 +205,32 @@ public class Util
         StackTraceElement stackTrace[];
     
         stackTrace = new Throwable().getStackTrace();
-    
+
+        // This scheme depends on having one level in the package name between
+        // Team4450 and the class name, ie: Team4450.lib.Util.method. New levels
+        // will require rewrite.
+        
         try
         {
-        	return stackTrace[level].toString().split("Robot9.")[1];
+            String method = stackTrace[level].toString().split("4450.")[1];
+            
+            int startPos = method.indexOf(".") + 1;
+            
+            return method.substring(startPos);
         }
         catch (Throwable e)
         {
-        	return stackTrace[level].toString().split("Lib.")[1];
+			return "method not found";
         }
+
+//        try
+//        {
+//        	return stackTrace[level].toString().split("Robot9.")[1];
+//        }
+//        catch (Throwable e)
+//        {
+//        	return stackTrace[level].toString().split("Lib.")[1];
+//        }
 	}
 
 	// Works the same as LCD.consoleLog but automatically includes the program location from which
