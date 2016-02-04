@@ -28,7 +28,7 @@ import edu.wpi.first.wpilibj.CANTalon;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "RAC9-01.27.16-01";
+  static final String  	PROGRAM_NAME = "MRB9-01.27.16-01";
 
   // Motor CAN ID assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   final CANTalon		LFTalon = new CANTalon(1);
@@ -47,7 +47,7 @@ public class Robot extends SampleRobot
   //AxisCamera			camera = null;
   CameraServer			usbCameraServer = null;
 
-  DriverStation         ds = null;
+DriverStation         ds = null;
     
   DriverStation.Alliance	alliance;
   int                       location;
