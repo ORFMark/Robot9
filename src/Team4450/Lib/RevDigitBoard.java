@@ -20,8 +20,8 @@ public class RevDigitBoard
 	private DigitalInput buttonB = new DigitalInput(20);
 	
 	// The potentiometer is keyed to AI 3	
-	private AnalogInput pot = new AnalogInput(3);
-
+	private AnalogInput	 pot = new AnalogInput(3);
+	
 	// this is the array of all characters - this is not the most efficient way to store the data - but it works for now
 	byte[][] charreg = new byte[37][2]; //charreg is short for character registry
 	
