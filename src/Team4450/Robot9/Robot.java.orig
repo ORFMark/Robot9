@@ -29,7 +29,7 @@ import edu.wpi.first.wpilibj.CANTalon;
 public class Robot extends SampleRobot 
 {
 <<<<<<< HEAD
-  static final String  	PROGRAM_NAME = "MRB9-01.27.16-01";
+  static final String  	PROGRAM_NAME = "MRB9-02.05.16-01";
 =======
   static final String  	PROGRAM_NAME = "RAC9-02.04.16-01";
 >>>>>>> ORF-4450/master
@@ -38,9 +38,16 @@ public class Robot extends SampleRobot
   final CANTalon		LFTalon = new CANTalon(1);
   //final CANTalon		LRTalon = new CANTalon(2);
   final CANTalon		RFTalon = new CANTalon(3);
+<<<<<<< HEAD
   //final CANTalon		RRTalon = new CANTalon(4);
   //final RobotDrive      robotDrive = new RobotDrive(LFTalon, LRTalon, RFTalon, RRTalon);
   final RobotDrive      robotDrive = new RobotDrive(LFTalon, RFTalon);
+=======
+  final CANTalon		RRTalon = new CANTalon(4);
+  final CANTalon		LSlaveTalon = new CANTalon(5);
+  final CANTalon		RSlaveTalon = new CANTalon(6);
+  final RobotDrive      robotDrive = new RobotDrive(LFTalon, LRTalon, RFTalon, RRTalon);
+>>>>>>> ORF-4450/master
   final Joystick        utilityStick = new Joystick(2);	// 0 old ds configuration
   final Joystick        leftStick = new Joystick(0);	// 1
   final Joystick        rightStick = new Joystick(1);	// 2
@@ -52,7 +59,7 @@ public class Robot extends SampleRobot
   //AxisCamera			camera = null;
   CameraServer			usbCameraServer = null;
 
-DriverStation         ds = null;
+  DriverStation         ds = null;
     
   DriverStation.Alliance	alliance;
   int                       location;
@@ -92,6 +99,7 @@ DriverStation         ds = null;
         initializeCANTalon(LFTalon);
         //initializeCANTalon(LRTalon);
         initializeCANTalon(RFTalon);
+<<<<<<< HEAD
         //initializeCANTalon(RRTalon);
         
         LFTalon.setInverted(true);
@@ -99,6 +107,23 @@ DriverStation         ds = null;
         
         //robotDrive.setInvertedMotor(RobotDrive.MotorType.kFrontLeft, true);
         //robotDrive.setInvertedMotor(RobotDrive.MotorType.kRearLeft, true);
+=======
+        initializeCANTalon(RRTalon);
+        initializeCANTalon(LSlaveTalon);
+        initializeCANTalon(RSlaveTalon);
+        
+        // Configure slave CAN Talons to follow the front L & R Talons.
+        LSlaveTalon.changeControlMode(TalonControlMode.Follower);
+        LSlaveTalon.set(LFTalon.getDeviceID());
+
+        RSlaveTalon.changeControlMode(TalonControlMode.Follower);
+        RSlaveTalon.set(RFTalon.getDeviceID());
+        
+        // Reverse motors to they all turn on the right direction to match "forward"
+        // as we define it for the robot.
+        robotDrive.setInvertedMotor(RobotDrive.MotorType.kFrontLeft, true);
+        robotDrive.setInvertedMotor(RobotDrive.MotorType.kRearLeft, true);
+>>>>>>> ORF-4450/master
     
         //robotDrive.setInvertedMotor(RobotDrive.MotorType.kFrontRight, true);
         //robotDrive.setInvertedMotor(RobotDrive.MotorType.kRearRight, true);

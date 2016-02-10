@@ -28,7 +28,7 @@ class Teleop
 
 		this.robot = robot;
 		
-		shifterValve = new FestoDA(1);
+		shifterValve = new FestoDA(0);
 		
 		shifterClose();
 	}
@@ -120,6 +120,7 @@ class Teleop
 			LCD.printLine(10, "A=%b  B=%b  pot=%d  potv=%f  hes=%b", revBoard.getButtonA(), revBoard.getButtonB(), 
 					revBoard.getPotValue(), revBoard.getPot().getVoltage(), false); //, !hallEffectSensor.get());
 			
+
 			// End of driving loop.
 			
 			Timer.delay(.020);	// wait 20ms for update from driver station.
