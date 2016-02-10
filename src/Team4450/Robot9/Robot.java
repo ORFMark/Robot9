@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.CANTalon.TalonControlMode;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.CANTalon;
+import edu.wpi.first.wpilibj.Talon;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -30,13 +31,16 @@ public class Robot extends SampleRobot
 {
   static final String  	PROGRAM_NAME = "MRB9-02.05.16-01";
 
-  // Motor CAN ID assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
+  // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
+  Talon					LFPwmTalon, LRPwmTalon, RFPwmTalon, RRPwmTalon;
   RobotDrive      		robotDrive;
+  
   final Joystick        utilityStick = new Joystick(2);	// 0 old ds configuration
   final Joystick        leftStick = new Joystick(0);	// 1
   final Joystick        rightStick = new Joystick(1);	// 2
   final Joystick		launchPad = new Joystick(3);
+  
   final Compressor		compressor = new Compressor(0);
 
   public Properties		robotProperties;
@@ -94,6 +98,7 @@ public class Robot extends SampleRobot
    		robotProperties = Util.readProperties();
       
    		SmartDashboard.putString("Program", PROGRAM_NAME);
+   		
    		//SmartDashboard.putBoolean("CompressorEnabled", false);
    		SmartDashboard.putBoolean("CompressorEnabled", Boolean.parseBoolean(robotProperties.getProperty("CompressorEnabledByDefault")));
 
@@ -103,9 +108,13 @@ public class Robot extends SampleRobot
    		PDP.clearStickyFaults();
 
    		// Configure motor controllers and RobotDrive.
-        
-   		InitializeCANTalonDrive();
-
+        // Competition robot uses CAN Talons clone uses PWM Talons.
+   		
+		if (robotProperties.getProperty("RobotId").equals("comp")) 
+			InitializeCANTalonDrive();
+		else
+			InitializePWMTalonDrive();
+		
         robotDrive.stopMotor();
     
         robotDrive.setExpiration(0.1);
@@ -289,6 +298,13 @@ public class Robot extends SampleRobot
   private void InitializePWMTalonDrive()
   {
 	  Util.consoleLog();
+
+	  LFPwmTalon = new Talon(1);
+	  LRPwmTalon = new Talon(2);
+	  RFPwmTalon = new Talon(3);
+	  RRPwmTalon = new Talon(4);
+	  
+	  robotDrive = new RobotDrive(LFPwmTalon, LRPwmTalon, RFPwmTalon, RRPwmTalon);
   }
   
   // Initialize and Log status indication from CANTalon. If we see an exception

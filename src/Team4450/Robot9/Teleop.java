@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 class Teleop
 {
 	private final Robot 		robot;
-	private double				powerFactor = 1.0;
 	private JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
 	private final FestoDA		shifterValve, ptoValve, valve3, valve4;
@@ -65,10 +64,9 @@ class Teleop
 		
 		LCD.printLine(1, "Mode: OperatorControl");
 		LCD.printLine(2, "All=%s, Start=%d, FMS=%b", robot.alliance.name(), robot.location, robot.ds.isFMSAttached());
-
-		SmartDashboard.putNumber("Power Factor", powerFactor * 100);
 		
 		// Initial setting of air valves.
+
 		shifterLow();
 		ptoDisable();
 		
@@ -80,19 +78,14 @@ class Teleop
 		launchPad = new LaunchPad(robot.launchPad, LaunchPadControlIDs.BUTTON_BLACK, this);
 		LaunchPadControl lpControl = launchPad.AddControl(LaunchPadControlIDs.ROCKER_LEFT_FRONT);
 		lpControl.controlType = LaunchPadControlTypes.SWITCH;
-		launchPad.AddControl(LaunchPadControlIDs.BUTTON_GREEN);
-		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_YELLOW);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_BLUE);
         launchPad.addLaunchPadEventListener(new LaunchPadListener());
         launchPad.Start();
 
-		leftStick = new JoyStick(robot.leftStick, "LeftStick", JoyStickButtonIDs.TOP_LEFT, this);
-		leftStick.AddButton(JoyStickButtonIDs.TOP_RIGHT);
-		leftStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
-		leftStick.AddButton(JoyStickButtonIDs.TOP_BACK);
-        leftStick.addJoyStickEventListener(new LeftStickListener());
-        leftStick.Start();
+		//leftStick = new JoyStick(robot.leftStick, "LeftStick", JoyStickButtonIDs.TOP_LEFT, this);
+        //leftStick.addJoyStickEventListener(new LeftStickListener());
+        //leftStick.Start();
         
 		rightStick = new JoyStick(robot.rightStick, "RightStick", JoyStickButtonIDs.TOP_LEFT, this);
         rightStick.addJoyStickEventListener(new RightStickListener());
@@ -125,14 +118,14 @@ class Teleop
     			leftY = leftStick.GetY();		// fwd/back left
 			}
 
-			LCD.printLine(4, "leftY=%.4f  rightY=%.4f, power=%f", leftY, rightY, powerFactor);
+			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
 
 			// This corrects stick alignment error when trying to drive straight. 
 			if (Math.abs(rightY - leftY) < 0.2) rightY = leftY;
 			
 			// Set motors.
 
-			robot.robotDrive.tankDrive(leftY * powerFactor, rightY * powerFactor);
+			robot.robotDrive.tankDrive(leftY, rightY);
 
 			//LCD.printLine(7, "penc=%d  pv=%d", robot.RFTalon.getPulseWidthPosition(), robot.RFTalon.getPulseWidthVelocity());
 			//LCD.printLine(8, "aenc=%d  av=%d", robot.RFTalon.getAnalogInPosition(), robot.RFTalon.getAnalogInVelocity());
@@ -211,19 +204,7 @@ class Teleop
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
 				else
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
-			
-			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_GREEN)
-			{
-				((Teleop) launchPadEvent.getSource()).powerFactor = 1.0;
-				SmartDashboard.putNumber("Power Factor", ((Teleop) launchPadEvent.getSource()).powerFactor * 100);
-			}
-			
-			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_RED)
-			{
-				((Teleop) launchPadEvent.getSource()).powerFactor = 0.5;
-				SmartDashboard.putNumber("Power Factor", ((Teleop) launchPadEvent.getSource()).powerFactor * 100);
-			}
-
+	
 			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
 			{
 				if (launchPadEvent.control.latchedState)
@@ -288,38 +269,13 @@ class Teleop
 
 	// Handle Left JoyStick Button events.
 	
+	@SuppressWarnings("unused")
 	private class LeftStickListener implements JoyStickEventListener 
 	{
 	    public void ButtonDown(JoyStickEvent joyStickEvent) 
 	    {
 			Util.consoleLog("%s, latchedState=%b", joyStickEvent.button.id.name(),  joyStickEvent.button.latchedState);
 			
-			// Change the power factor setting.
-
-			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_LEFT)) ((Teleop) joyStickEvent.getSource()).powerFactor = 1.0;
-			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_RIGHT)) ((Teleop) joyStickEvent.getSource()).powerFactor = 0.5;
-			
-			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))
-			{
-				if (((Teleop) joyStickEvent.getSource()).powerFactor == 1.0)
-					((Teleop) joyStickEvent.getSource()).powerFactor = .75;
-				else if (((Teleop) joyStickEvent.getSource()).powerFactor == .75)
-					((Teleop) joyStickEvent.getSource()).powerFactor = .50;
-				else if (((Teleop) joyStickEvent.getSource()).powerFactor == .50)
-					((Teleop) joyStickEvent.getSource()).powerFactor = .25;
-			}
-			
-			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_BACK))
-			{
-				if (((Teleop) joyStickEvent.getSource()).powerFactor == .25)
-					((Teleop) joyStickEvent.getSource()).powerFactor = .50;
-				else if (((Teleop) joyStickEvent.getSource()).powerFactor == .50)
-					((Teleop) joyStickEvent.getSource()).powerFactor = .75;
-				else if (((Teleop) joyStickEvent.getSource()).powerFactor == .75)
-					((Teleop) joyStickEvent.getSource()).powerFactor = 1.0;
-			}
-
-			SmartDashboard.putNumber("Power Factor", ((Teleop) joyStickEvent.getSource()).powerFactor * 100);
 	    }
 
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
