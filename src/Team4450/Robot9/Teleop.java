@@ -16,8 +16,9 @@ class Teleop
 	private double				powerFactor = 1.0;
 	private JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
-	private final FestoDA		shifterValve;
-	private final RevDigitBoard	revBoard = new RevDigitBoard();
+	private final FestoDA		shifterValve, ptoValve, valve3, valve4;
+	private boolean				ptoMode = false;
+	//private final RevDigitBoard	revBoard = new RevDigitBoard();
 	//private final DigitalInput	hallEffectSensor = new DigitalInput(0);
 	
 	// Constructor.
@@ -28,9 +29,11 @@ class Teleop
 
 		this.robot = robot;
 		
-		shifterValve = new FestoDA(0);
-		
-		shifterClose();
+		shifterValve = new FestoDA(2);
+		ptoValve = new FestoDA(0);
+
+		valve3 = new FestoDA(4);
+		valve4 = new FestoDA(6);
 	}
 
 	// Free all objects that need it.
@@ -44,7 +47,10 @@ class Teleop
 		if (utilityStick != null) utilityStick.dispose();
 		if (launchPad != null) launchPad.dispose();
 		if (shifterValve != null) shifterValve.dispose();
-		if (revBoard != null) revBoard.dispose();
+		if (ptoValve != null) ptoValve.dispose();
+		if (valve3 != null) valve3.dispose();
+		if (valve4 != null) valve4.dispose();
+		//if (revBoard != null) revBoard.dispose();
 		//if (hallEffectSensor != null) hallEffectSensor.free();
 	}
 
@@ -62,13 +68,20 @@ class Teleop
 
 		SmartDashboard.putNumber("Power Factor", powerFactor * 100);
 		
+		// Initial setting of air valves.
+		shifterLow();
+		ptoDisable();
+		
+		valve3.SetA();
+		valve4.SetA();
+		
 		// Configure LaunchPad and Joystick event handlers.
 		
-		launchPad = new LaunchPad(robot.launchPad, LaunchPadControlIDs.BUTTON_SIX, this);
-		LaunchPadControl lpControl = launchPad.AddControl(LaunchPadControlIDs.BUTTON_FOUR);
+		launchPad = new LaunchPad(robot.launchPad, LaunchPadControlIDs.BUTTON_BLACK, this);
+		LaunchPadControl lpControl = launchPad.AddControl(LaunchPadControlIDs.ROCKER_LEFT_FRONT);
 		lpControl.controlType = LaunchPadControlTypes.SWITCH;
-		launchPad.AddControl(LaunchPadControlIDs.BUTTON_ONE);
-		launchPad.AddControl(LaunchPadControlIDs.BUTTON_EIGHT);
+		launchPad.AddControl(LaunchPadControlIDs.BUTTON_GREEN);
+		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_YELLOW);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_BLUE);
         launchPad.addLaunchPadEventListener(new LaunchPadListener());
@@ -101,8 +114,16 @@ class Teleop
 			// Get joystick deflection and feed to robot drive object.
 			// using calls to our JoyStick class.
 
-			rightY = rightStick.GetY();		// fwd/back right
-			leftY = leftStick.GetY();		// fwd/back left
+			if (ptoMode)
+			{
+				rightY = utilityStick.GetY();
+				leftY = rightY;
+			} 
+			else
+			{
+    			rightY = rightStick.GetY();		// fwd/back right
+    			leftY = leftStick.GetY();		// fwd/back left
+			}
 
 			LCD.printLine(4, "leftY=%.4f  rightY=%.4f, power=%f", leftY, rightY, powerFactor);
 
@@ -131,18 +152,48 @@ class Teleop
 		Util.consoleLog("end");
 	}
 
-	void shifterClose()
+	// Transmission control functions.
+	
+	void shifterLow()
 	{
 		Util.consoleLog();
 		
-		shifterValve.Close();
+		shifterValve.SetA();
+
+		SmartDashboard.putBoolean("Low", true);
+		SmartDashboard.putBoolean("High", false);
 	}
 
-	void shifterOpen()
+	void shifterHigh()
 	{
 		Util.consoleLog();
 		
-		shifterValve.Open();
+		shifterValve.SetB();
+
+		SmartDashboard.putBoolean("Low", false);
+		SmartDashboard.putBoolean("High", true);
+	}
+
+	void ptoDisable()
+	{
+		Util.consoleLog();
+		
+		ptoMode = false;
+		
+		ptoValve.SetA();
+
+		SmartDashboard.putBoolean("PTO", false);
+	}
+
+	void ptoEnable()
+	{
+		Util.consoleLog();
+		
+		ptoValve.SetB();
+
+		ptoMode = true;
+		
+		SmartDashboard.putBoolean("PTO", true);
 	}
 
 	// Handle LaunchPad control events.
@@ -155,39 +206,41 @@ class Teleop
 			
 			// Change which USB camera is being served by the RoboRio when using dual usb cameras.
 			
-			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_SIX))
+			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_BLACK))
 				if (launchPadEvent.control.latchedState)
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
 				else
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
 			
-			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_ONE)
+			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_GREEN)
 			{
 				((Teleop) launchPadEvent.getSource()).powerFactor = 1.0;
 				SmartDashboard.putNumber("Power Factor", ((Teleop) launchPadEvent.getSource()).powerFactor * 100);
 			}
 			
-			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_EIGHT)
+			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_RED)
 			{
 				((Teleop) launchPadEvent.getSource()).powerFactor = 0.5;
 				SmartDashboard.putNumber("Power Factor", ((Teleop) launchPadEvent.getSource()).powerFactor * 100);
 			}
 
-			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_YELLOW)
-			{
-				//revBoard.display("");
-				
-				if (launchPadEvent.control.latchedState)
-    				shifterOpen();
-    			else
-    				shifterClose();
-			}
-
 			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
 			{
-				//revBoard.blink(true);
-				//revBoard.displayTestPattern();
-				//revBoard.display("ZX 9");
+				if (launchPadEvent.control.latchedState)
+    				shifterHigh();
+    			else
+    				shifterLow();
+			}
+
+			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_YELLOW)
+			{
+				if (launchPadEvent.control.latchedState)
+				{
+					shifterLow();
+					ptoEnable();
+				}
+    			else
+    				ptoDisable();
 			}
 	    }
 	    
