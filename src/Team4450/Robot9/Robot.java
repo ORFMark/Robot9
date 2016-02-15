@@ -175,6 +175,7 @@ public class Robot extends SampleRobot
 		  SmartDashboard.putBoolean("Disabled", true);
 		  SmartDashboard.putBoolean("Auto Mode", false);
 		  SmartDashboard.putBoolean("Teleop Mode", false);
+		  SmartDashboard.putBoolean("PTO", false);
 		  SmartDashboard.putBoolean("FMS", ds.isFMSAttached());
 
 		  Util.consoleLog("end");

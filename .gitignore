@@ -7,6 +7,6 @@ build/
 dist/
 
 # Misc temp files
-
+*.orig
 # Backups
 *.zip
