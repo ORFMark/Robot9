@@ -88,16 +88,20 @@ class Teleop
         launchPad.addLaunchPadEventListener(new LaunchPadListener());
         launchPad.Start();
 
-		leftStick = new JoyStick(robot.leftStick, "LeftStick", JoyStickButtonIDs.TOP_LEFT, this);
-        leftStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
+		leftStick = new JoyStick(robot.leftStick, "LeftStick", JoyStickButtonIDs.TRIGGER, this);
+		leftStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
 		leftStick.addJoyStickEventListener(new LeftStickListener());
         leftStick.Start();
         
-		rightStick = new JoyStick(robot.rightStick, "RightStick", JoyStickButtonIDs.TOP_LEFT, this);
-        rightStick.addJoyStickEventListener(new RightStickListener());
+		rightStick = new JoyStick(robot.rightStick, "RightStick", JoyStickButtonIDs.TRIGGER, this);
+        rightStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
+		rightStick.addJoyStickEventListener(new RightStickListener());
         rightStick.Start();
         
 		utilityStick = new JoyStick(robot.utilityStick, "UtilityStick", JoyStickButtonIDs.TOP_LEFT, this);
+		utilityStick.AddButton(JoyStickButtonIDs.TOP_RIGHT);
+		utilityStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
+		utilityStick.AddButton(JoyStickButtonIDs.TOP_BACK);
         utilityStick.addJoyStickEventListener(new UtilityStickListener());
         utilityStick.Start();
         
@@ -241,12 +245,14 @@ class Teleop
 	    	
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_BLACK)) 
 			{
-	    		ball.autoShootThread.start(); 
+	    		ball.BeltIn(); 
 			}
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED)) 
 			{
-	    		ball.autoPickupThread.start(); 
+	    		ball.BeltOff(); 
 			}
+			
+
 	    }
 	    
 		public void ButtonUp (LaunchPadEvent launchPadEvent) 
@@ -283,8 +289,14 @@ class Teleop
 					((CameraFeed) robot.cameraThread).ChangeCamera(((CameraFeed) robot.cameraThread).cam2);
 				else
 					((CameraFeed) robot.cameraThread).ChangeCamera(((CameraFeed) robot.cameraThread).cam1);			
-	    }
+	    
 
+	    if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
+		 	ball.StartAutoShoot(true);  
+		   
+	if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
+		ball.StopAutoShoot();  
+	    }
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
 	    {
 	    	//Util.consoleLog("%s", joyStickEvent.button.name());
@@ -293,13 +305,18 @@ class Teleop
 
 	// Handle Left JoyStick Button events.
 	
-	@SuppressWarnings("unused")
+	//@SuppressWarnings("unused")
 	private class LeftStickListener implements JoyStickEventListener 
 	{
 	    public void ButtonDown(JoyStickEvent joyStickEvent) 
 	    {
 			Util.consoleLog("%s, latchedState=%b", joyStickEvent.button.id.name(),  joyStickEvent.button.latchedState);
-			
+	    	
+			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
+			 	ball.StartAutoPickup();  
+			   
+		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
+			ball.StopAutoPickup(); 
 	    }
 
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
@@ -319,10 +336,28 @@ class Teleop
 			// Change which USB camera is being served by the RoboRio when using dual usb cameras.
 			
 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_LEFT))
-				if (joyStickEvent.button.latchedState)
-					((CameraFeed) robot.cameraThread).ChangeCamera(((CameraFeed) robot.cameraThread).cam2);
-				else
-					((CameraFeed) robot.cameraThread).ChangeCamera(((CameraFeed) robot.cameraThread).cam1);
+				ball.Fire();  
+						else  
+			 				ball.Reload();  
+			 		  
+			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_RIGHT))  
+					if (joyStickEvent.button.latchedState)  
+			 					ball.Fire();  
+						else  
+			 					ball.Reload();  
+			 			  
+			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
+					if (joyStickEvent.button.latchedState)  
+			 					ball.BeltIn();  
+						else  
+			 					ball.BeltOff();  
+			 			  
+			 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_BACK))  
+			 				if (joyStickEvent.button.latchedState)  
+			 					ball.BeltOut();  
+			    				else    
+			 					ball.BeltOff();  
+
 	    }
 
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
