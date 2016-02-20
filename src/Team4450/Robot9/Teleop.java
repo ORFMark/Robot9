@@ -6,17 +6,18 @@ import java.lang.Math;
 import Team4450.Lib.*;
 import Team4450.Lib.JoyStick.*;
 import Team4450.Lib.LaunchPad.*;
+import Team4450.Lib.JoyStick.JoyStickButtonIDs;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
 class Teleop
 {
 	private final Robot 		robot;
 	private JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
-	private final FestoDA		shifterValve, ptoValve, valve3, valve4;
+	private final FestoDA		shifterValve, ptoValve; //valve3, valve4;
 	private boolean				ptoMode = false;
+	public final Ball			ball;
 	//private final RevDigitBoard	revBoard = new RevDigitBoard();
 	//private final DigitalInput	hallEffectSensor = new DigitalInput(0);
 	
@@ -31,8 +32,9 @@ class Teleop
 		shifterValve = new FestoDA(2);
 		ptoValve = new FestoDA(0);
 
-		valve3 = new FestoDA(4);
-		valve4 = new FestoDA(6);
+		//valve3 = new FestoDA(4);
+		//valve4 = new FestoDA(6);
+		ball = new Ball(robot);
 	}
 
 	// Free all objects that need it.
@@ -47,8 +49,9 @@ class Teleop
 		if (launchPad != null) launchPad.dispose();
 		if (shifterValve != null) shifterValve.dispose();
 		if (ptoValve != null) ptoValve.dispose();
-		if (valve3 != null) valve3.dispose();
-		if (valve4 != null) valve4.dispose();
+		if (ball != null) ball.dispose();
+		//if (valve3 != null) valve3.dispose();
+		//if (valve4 != null) valve4.dispose();
 		//if (revBoard != null) revBoard.dispose();
 		//if (hallEffectSensor != null) hallEffectSensor.free();
 	}
@@ -70,8 +73,8 @@ class Teleop
 		shifterLow();
 		ptoDisable();
 		
-		valve3.SetA();
-		valve4.SetA();
+		//valve3.SetA();
+		//valve4.SetA();
 		
 		// Configure LaunchPad and Joystick event handlers.
 		
@@ -80,12 +83,15 @@ class Teleop
 		lpControl.controlType = LaunchPadControlTypes.SWITCH;
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_YELLOW);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_BLUE);
+		launchPad.AddControl(LaunchPadControlIDs.BUTTON_GREEN);
+		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED);
         launchPad.addLaunchPadEventListener(new LaunchPadListener());
         launchPad.Start();
 
 		leftStick = new JoyStick(robot.leftStick, "LeftStick", JoyStickButtonIDs.TOP_LEFT, this);
-        //leftStick.addJoyStickEventListener(new LeftStickListener());
-        //leftStick.Start();
+        leftStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
+		leftStick.addJoyStickEventListener(new LeftStickListener());
+        leftStick.Start();
         
 		rightStick = new JoyStick(robot.rightStick, "RightStick", JoyStickButtonIDs.TOP_LEFT, this);
         rightStick.addJoyStickEventListener(new RightStickListener());
@@ -198,10 +204,10 @@ class Teleop
 			// Change which USB camera is being served by the RoboRio when using dual usb cameras.
 			
 			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_BLACK))
-				if (launchPadEvent.control.latchedState)
-					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
-				else
-					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
+				//if (launchPadEvent.control.latchedState)
+				//	robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
+				//else
+				//	robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
 	
 			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
 			{
@@ -221,13 +227,33 @@ class Teleop
     			else
     				ptoDisable();
 			}
+			
+			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_GREEN)) 
+			{
+				if (launchPadEvent.control.latchedState) 
+				{
+					ball.AngleUp();
+				}
+				else 
+					ball.AngleDown();
+			
+			}
+	    	
+			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_BLACK)) 
+			{
+	    		ball.autoShootThread.start(); 
+			}
+			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED)) 
+			{
+	    		ball.autoPickupThread.start(); 
+			}
 	    }
 	    
-	    public void ButtonUp(LaunchPadEvent launchPadEvent) 
-	    {
-	    	//Util.consoleLog("%s, latchedState=%b", launchPadEvent.control.name(),  launchPadEvent.control.latchedState);
-	    }
-
+		public void ButtonUp (LaunchPadEvent launchPadEvent) 
+		{
+			    	//Util.consoleLog("%s, latchedState=%b", launchPadEvent.control.name(),  launchPadEvent.control.latchedState);
+		}
+	   
 	    public void SwitchChange(LaunchPadEvent launchPadEvent) 
 	    {
 	    	Util.consoleLog("%s", launchPadEvent.control.id.name());
