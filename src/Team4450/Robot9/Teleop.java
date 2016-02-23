@@ -16,25 +16,29 @@ class Teleop
 	private JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
 	private final FestoDA		shifterValve, ptoValve; //valve3, valve4;
-	private boolean				ptoMode = false;
+	private boolean				ptoMode = false, invertDrive=false;
 	public final Ball			ball;
+	public final Climb			climb;
 	//private final RevDigitBoard	revBoard = new RevDigitBoard();
 	//private final DigitalInput	hallEffectSensor = new DigitalInput(0);
-	
+	//public double				RIGHTY, LEFTY, UTILY; 
 	// Constructor.
-	
 	Teleop(Robot robot)
 	{
 		Util.consoleLog();
 
 		this.robot = robot;
 		
-		shifterValve = new FestoDA(2);
-		ptoValve = new FestoDA(0);
+		shifterValve = new FestoDA(0,2);
+		ptoValve = new FestoDA(0,0);
 
 		//valve3 = new FestoDA(4);
 		//valve4 = new FestoDA(6);
 		ball = new Ball(robot);
+		climb = new Climb(robot);
+		//RIGHTY=rightStick.GetY();
+		//LEFTY=leftStick.GetY();
+		//UTILY=utilityStick.GetY();
 	}
 
 	// Free all objects that need it.
@@ -58,7 +62,7 @@ class Teleop
 
 	void OperatorControl()
 	{
-		double	rightY, leftY;
+		double	rightY, leftY, utilY = 0;
         
         // Motor safety turned off during initialization.
         robot.robotDrive.setSafetyEnabled(false);
@@ -98,10 +102,12 @@ class Teleop
 		rightStick.addJoyStickEventListener(new RightStickListener());
         rightStick.Start();
         
-		utilityStick = new JoyStick(robot.utilityStick, "UtilityStick", JoyStickButtonIDs.TOP_LEFT, this);
+		utilityStick = new JoyStick(robot.utilityStick, "UtilityStick", JoyStickButtonIDs.TRIGGER, this);
+		utilityStick.AddButton(JoyStickButtonIDs.TOP_LEFT);
 		utilityStick.AddButton(JoyStickButtonIDs.TOP_RIGHT);
 		utilityStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
 		utilityStick.AddButton(JoyStickButtonIDs.TOP_BACK);
+		utilityStick.AddButton(JoyStickButtonIDs.TRIGGER);
         utilityStick.addJoyStickEventListener(new UtilityStickListener());
         utilityStick.Start();
         
@@ -114,18 +120,28 @@ class Teleop
 
 		while (robot.isEnabled() && robot.isOperatorControl())
 		{
+			
 			// Get joystick deflection and feed to robot drive object.
 			// using calls to our JoyStick class.
 
 			if (ptoMode)
 			{
 				rightY = utilityStick.GetY();
+				System.out.println(utilY);
 				leftY = rightY;
+				utilY = 0;
 			} 
+			else if (invertDrive)
+			{
+					rightY = rightStick.GetY() *-1.0;
+					leftY = leftStick.GetY() * -1.0; 
+					utilY = 0.75*utilityStick.GetY();
+			}
 			else
 			{
     			rightY = rightStick.GetY();		// fwd/back right
-    			leftY = leftStick.GetY();		// fwd/back left
+    			leftY = leftStick.GetY();		// fwd/back left\
+    			utilY=0.75*utilityStick.GetY();
 			}
 
 			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
@@ -136,7 +152,7 @@ class Teleop
 			// Set motors.
 
 			robot.robotDrive.tankDrive(leftY, rightY);
-
+			robot.utilMotor.set(utilY);
 			//LCD.printLine(7, "penc=%d  pv=%d", robot.RFTalon.getPulseWidthPosition(), robot.RFTalon.getPulseWidthVelocity());
 			//LCD.printLine(8, "aenc=%d  av=%d", robot.RFTalon.getAnalogInPosition(), robot.RFTalon.getAnalogInVelocity());
 			
@@ -207,22 +223,30 @@ class Teleop
 			
 			// Change which USB camera is being served by the RoboRio when using dual usb cameras.
 			
+			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_GREEN))
+				if (launchPadEvent.control.latchedState)
+					climb.ClimbUp();
+				else
+					climb.ClimbDown();
+				
 			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_BLACK))
-				//if (launchPadEvent.control.latchedState)
-				//	robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
-				//else
-				//	robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
+				if (launchPadEvent.control.latchedState)
+					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
+				else
+					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
 	
 			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
 			{
-				if (launchPadEvent.control.latchedState)
-    				shifterHigh();
-    			else
-    				shifterLow();
+			//	Util.consoleLog();
+			// if (launchPadEvent.control.latchedState)
+    		//		shifterHigh();
+    		//	else
+    		//		shifterLow();
 			}
 
-			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_YELLOW)
+			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
 			{
+				Util.consoleLog();
 				if (launchPadEvent.control.latchedState)
 				{
 					shifterLow();
@@ -232,8 +256,9 @@ class Teleop
     				ptoDisable();
 			}
 			
-			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_GREEN)) 
+			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_YELLOW)) 
 			{
+				Util.consoleLog();
 				if (launchPadEvent.control.latchedState) 
 				{
 					ball.AngleUp();
@@ -245,11 +270,21 @@ class Teleop
 	    	
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_BLACK)) 
 			{
-	    		ball.BeltIn(); 
+				Util.consoleLog();
+				//ball.BeltIn();
+				//if (launchPadEvent.control.latchedState)
+			//		climb.AngleIn();
+				//else
+				//	climb.AngleOut();
 			}
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED)) 
 			{
-	    		ball.BeltOff(); 
+				Util.consoleLog();
+	    		if (launchPadEvent.control.latchedState)
+	    			ball.PickupDown();
+	    		else
+	    			ball.PickupUp();
+	    		
 			}
 			
 
@@ -266,7 +301,7 @@ class Teleop
 
 	    	// Change which USB camera is being served by the RoboRio when using dual usb cameras.
 			
-			if (launchPadEvent.control.id.equals(LaunchPadControlIDs.BUTTON_FOUR))
+			if (launchPadEvent.control.id.equals(LaunchPadControlIDs.ROCKER_LEFT_FRONT))
 				if (launchPadEvent.control.latchedState)
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
 				else
@@ -292,7 +327,7 @@ class Teleop
 	    
 
 	    if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
-		 	ball.StartAutoShoot(true);  
+		 	invertDrive = joyStickEvent.button.latchedState;  
 		   
 	if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
 		ball.StopAutoShoot();  
@@ -312,11 +347,14 @@ class Teleop
 	    {
 			Util.consoleLog("%s, latchedState=%b", joyStickEvent.button.id.name(),  joyStickEvent.button.latchedState);
 	    	
-			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
+			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
 			 	ball.StartAutoPickup();  
 			   
-		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
-			ball.StopAutoPickup(); 
+		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
+			if (joyStickEvent.button.latchedState)
+				shifterLow();
+			else
+				shifterHigh();
 	    }
 
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
@@ -336,15 +374,16 @@ class Teleop
 			// Change which USB camera is being served by the RoboRio when using dual usb cameras.
 			
 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_LEFT))
+				if (joyStickEvent.button.latchedState)
 				ball.Fire();  
 						else  
 			 				ball.Reload();  
 			 		  
 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_RIGHT))  
 					if (joyStickEvent.button.latchedState)  
-			 					ball.Fire();  
+			 					ball.StartAutoPickup();  
 						else  
-			 					ball.Reload();  
+			 					ball.StopAutoPickup();  
 			 			  
 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
 					if (joyStickEvent.button.latchedState)  
@@ -352,12 +391,13 @@ class Teleop
 						else  
 			 					ball.BeltOff();  
 			 			  
-			 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_BACK))  
-			 				if (joyStickEvent.button.latchedState)  
-			 					ball.BeltOut();  
-			    				else    
-			 					ball.BeltOff();  
-
+			 		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_BACK))  
+			 			if (joyStickEvent.button.latchedState)  
+			 				ball.BeltOut();  
+			 			else    
+			 				ball.BeltOff();  
+			 		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))
+			 				ball.StartAutoShoot(false);
 	    }
 
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 

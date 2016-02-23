@@ -29,11 +29,12 @@ import edu.wpi.first.wpilibj.Talon;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "MRB9-02.17.16-01";
+  static final String  	PROGRAM_NAME = "MRB9-02.22.16-03";
 
   // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
   Talon					LFPwmTalon, LRPwmTalon, RFPwmTalon, RRPwmTalon;
+  Talon					utilMotor;
   RobotDrive      		robotDrive;
   
   final Joystick        utilityStick = new Joystick(2);	// 0 old ds configuration
@@ -276,6 +277,9 @@ public class Robot extends SampleRobot
 	  RRCanTalon = new CANTalon(4);
 	  LSlaveCanTalon = new CANTalon(5);
 	  RSlaveCanTalon = new CANTalon(6);
+	  
+	  utilMotor=new Talon(2);
+	  utilMotor.setInverted(true);
 	  
 	  robotDrive = new RobotDrive(LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon);
 

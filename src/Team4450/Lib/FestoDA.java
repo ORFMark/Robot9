@@ -30,12 +30,12 @@ public class FestoDA
 	 * @param port PCM port wired to open/A side of valve. Close/B side is wired to PCM next port.
 	 */
 
-	public FestoDA(int port)
+	public FestoDA(int PCM, int port)
 	{
 	  	Util.consoleLog("port=%d", port);
 
-		valveOpenSide = new Solenoid(port);
-		valveCloseSide = new Solenoid(port + 1);
+		valveOpenSide = new Solenoid(PCM, port);
+		valveCloseSide = new Solenoid(PCM, port + 1);
     
 		solenoidSlideTime = .05;
     
