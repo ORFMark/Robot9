@@ -54,6 +54,7 @@ class Teleop
 		if (shifterValve != null) shifterValve.dispose();
 		if (ptoValve != null) ptoValve.dispose();
 		if (ball != null) ball.dispose();
+		if (climb != null) ball.dispose();
 		//if (valve3 != null) valve3.dispose();
 		//if (valve4 != null) valve4.dispose();
 		//if (revBoard != null) revBoard.dispose();
@@ -73,9 +74,9 @@ class Teleop
 		LCD.printLine(2, "All=%s, Start=%d, FMS=%b", robot.alliance.name(), robot.location, robot.ds.isFMSAttached());
 		
 		// Initial setting of air valves.
-
 		shifterLow();
 		ptoDisable();
+		climb.ClimbUp();
 		
 		//valve3.SetA();
 		//valve4.SetA();
@@ -127,7 +128,6 @@ class Teleop
 			if (ptoMode)
 			{
 				rightY = utilityStick.GetY();
-				System.out.println(utilY);
 				leftY = rightY;
 				utilY = 0;
 			} 
@@ -225,9 +225,9 @@ class Teleop
 			
 			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_GREEN))
 				if (launchPadEvent.control.latchedState)
-					climb.ClimbUp();
-				else
 					climb.ClimbDown();
+				else
+					climb.ClimbUp();
 				
 			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_BLACK))
 				if (launchPadEvent.control.latchedState)
