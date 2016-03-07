@@ -1,6 +1,6 @@
 // 2016 competition robot code.
 // Cleaned up and reorganized in preparation for 2016.
-// For Robot "tba" built for FRC game "First Stronghold".
+// For Robot "USS Kelvin" built for FRC game "First Stronghold".
 
 package Team4450.Robot9;
 
@@ -9,6 +9,7 @@ import java.util.Properties;
 
 import Team4450.Lib.*;
 import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.AnalogGyro;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
@@ -29,7 +30,7 @@ import edu.wpi.first.wpilibj.Talon;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "MRB9-02.23.16-01";
+  static final String  	PROGRAM_NAME = "MRB9-03.03.16-01";
 
   // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
@@ -43,6 +44,7 @@ public class Robot extends SampleRobot
   final Joystick		launchPad = new Joystick(3);
   
   final Compressor		compressor = new Compressor(0);
+  final AnalogGyro 		gyro=new AnalogGyro(0);
 
   public Properties		robotProperties;
 	
@@ -55,7 +57,7 @@ public class Robot extends SampleRobot
   int                       location;
     
   Thread               	monitorBatteryThread, monitorDistanceThread, monitorCompressorThread;
-  public CameraFeed		cameraThread;
+   CameraFeed		cameraThread;
     
   static final String  	CAMERA_IP = "10.44.50.11";
   static final int	   	USB_CAMERA = 2;
@@ -119,6 +121,7 @@ public class Robot extends SampleRobot
         robotDrive.stopMotor();
     
         robotDrive.setExpiration(0.1);
+        robotDrive.setSafetyEnabled(false);
         
         // Reverse motors so they all turn on the right direction to match "forward"
         // as we define it for the robot.
@@ -145,6 +148,9 @@ public class Robot extends SampleRobot
    		monitorBatteryThread = new MonitorBattery(ds);
    		monitorBatteryThread.start();
 
+   		gyro.initGyro(); 
+   		gyro.calibrate();
+   		
    		monitorCompressorThread = new MonitorCompressor();
    		monitorCompressorThread.start();
 
@@ -304,10 +310,10 @@ public class Robot extends SampleRobot
   {
 	  Util.consoleLog();
 
-	  LFPwmTalon = new Talon(1);
-	  LRPwmTalon = new Talon(2);
-	  RFPwmTalon = new Talon(3);
-	  RRPwmTalon = new Talon(4);
+	  LFPwmTalon = new Talon(3);
+	  LRPwmTalon = new Talon(4);
+	  RFPwmTalon = new Talon(5);
+	  RRPwmTalon = new Talon(6);
 	  
 	  robotDrive = new RobotDrive(LFPwmTalon, LRPwmTalon, RFPwmTalon, RRPwmTalon);
   }

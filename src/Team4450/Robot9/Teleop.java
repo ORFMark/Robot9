@@ -2,7 +2,8 @@
 package Team4450.Robot9;
 
 import java.lang.Math;
-
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.Talon;
 import Team4450.Lib.*;
 import Team4450.Lib.JoyStick.*;
 import Team4450.Lib.LaunchPad.*;
@@ -15,10 +16,12 @@ class Teleop
 	private final Robot 		robot;
 	private JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
-	private final FestoDA		shifterValve, ptoValve; //valve3, valve4;
+	private final FestoDA		shifterValve, ManipulatorValve, ptoValve; //valve3, valve4;
 	private boolean				ptoMode = false, invertDrive=false;
 	public final Ball			ball;
 	public final Climb			climb;
+	private final DigitalInput ClimbLimitUp = new DigitalInput(3);
+	private final DigitalInput ClimbLimitDown = new DigitalInput(4);
 	//private final RevDigitBoard	revBoard = new RevDigitBoard();
 	//private final DigitalInput	hallEffectSensor = new DigitalInput(0);
 	//public double				RIGHTY, LEFTY, UTILY; 
@@ -31,6 +34,7 @@ class Teleop
 		
 		shifterValve = new FestoDA(0,2);
 		ptoValve = new FestoDA(0,0);
+		ManipulatorValve=new FestoDA (1,2);
 
 		//valve3 = new FestoDA(4);
 		//valve4 = new FestoDA(6);
@@ -54,7 +58,9 @@ class Teleop
 		if (shifterValve != null) shifterValve.dispose();
 		if (ptoValve != null) ptoValve.dispose();
 		if (ball != null) ball.dispose();
-		if (climb != null) ball.dispose();
+		if (climb != null) climb.dispose();
+		if (ManipulatorValve != null) ManipulatorValve.dispose();
+		if (ClimbLimitUp != null) ClimbLimitUp.free();
 		//if (valve3 != null) valve3.dispose();
 		//if (valve4 != null) valve4.dispose();
 		//if (revBoard != null) revBoard.dispose();
@@ -77,6 +83,7 @@ class Teleop
 		shifterLow();
 		ptoDisable();
 		climb.ClimbUp();
+		ManipulatorUp();
 		
 		//valve3.SetA();
 		//valve4.SetA();
@@ -127,10 +134,12 @@ class Teleop
 
 			if (ptoMode)
 			{
+			
 				rightY = utilityStick.GetY();
 				leftY = rightY;
+				if (rightY > 0 && ClimbLimitUp.get()) rightY = 0;
 				utilY = 0;
-			} 
+			}
 			else if (invertDrive)
 			{
 					rightY = rightStick.GetY() *-1.0;
@@ -147,8 +156,8 @@ class Teleop
 			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
 
 			// This corrects stick alignment error when trying to drive straight. 
-			if (Math.abs(rightY - leftY) < 0.2) rightY = leftY;
-			
+			//if (Math.abs(rightY - leftY) < 0.2) rightY = leftY;
+			//commented in order to fix jerky drive
 			// Set motors.
 
 			robot.robotDrive.tankDrive(leftY, rightY);
@@ -212,7 +221,16 @@ class Teleop
 		
 		SmartDashboard.putBoolean("PTO", true);
 	}
-
+	void ManipulatorUp()
+	{
+		Util.consoleLog();
+		ManipulatorValve.SetB();
+	}
+	void ManipulatorDown()
+	{
+		Util.consoleLog();
+		ManipulatorValve.SetA();
+	}
 	// Handle LaunchPad control events.
 	
 	public class LaunchPadListener implements LaunchPadEventListener 
@@ -348,7 +366,10 @@ class Teleop
 			Util.consoleLog("%s, latchedState=%b", joyStickEvent.button.id.name(),  joyStickEvent.button.latchedState);
 	    	
 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
-			 	ball.StartAutoPickup();  
+			 	if (joyStickEvent.button.latchedState)
+			 		ManipulatorDown();
+			 	else
+			 		ManipulatorUp();
 			   
 		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
 			if (joyStickEvent.button.latchedState)

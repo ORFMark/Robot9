@@ -11,21 +11,25 @@ public class Autonomous
 {
 	private final Robot	robot;
 	private final int	program = (int) SmartDashboard.getNumber("AutoProgramSelect");
+	public final Teleop teleop;
 	
 	// encoder is plugged into dio port 2 - orange=+5v blue=signal, dio port 3 black=gnd yellow=signal. 
 	private Encoder		encoder = new Encoder(2, 3, true, EncodingType.k4X);
+	double encoderOutput=encoder.get();
 
 	Autonomous(Robot robot)
 	{
 		Util.consoleLog();
 		
 		this.robot = robot;
+		teleop=new Teleop(robot);
+		teleop.ptoDisable();
 	}
 
-	public void dispose()
+	public void dispose() 
 	{
 		Util.consoleLog();
-		
+		if (teleop != null) teleop.dispose();
 		encoder.free();
 	}
 
@@ -38,6 +42,52 @@ public class Autonomous
     
 		switch (program)
 		{
+		case 0:
+		break;
+		case 1:		// Drive forward to defense and stop.  
+			 	robot.robotDrive.tankDrive(-.66, -.60);  
+			 			  
+			 				while (robot.isAutonomous() && Math.abs(encoder.get()) < 300)   
+			 				{  
+			 					LCD.printLine(3, "encoder=%d", encoder.get());  
+			 					LCD.printLine(5, "gyroAngle=%d, gyroRate=%d", (int) robot.gyro.getAngle(), (int) robot.gyro.getRate());  
+			 					Timer.delay(.020);  
+			 				}  
+			   
+			 				robot.robotDrive.tankDrive(0, 0, true);				  
+			 				break;  
+			   
+			 			case 2:		// Drive forward to and cross the rough ground then stop.  
+			 				robot.robotDrive.tankDrive(-.96, -.90);  
+			 				  
+			 				while (robot.isAutonomous() && Math.abs(encoder.get()) < 1500)   
+			 				{  
+			 					LCD.printLine(3, "encoder=%d", encoder.get());  
+			 					LCD.printLine(5, "gyroAngle=%d, gyroRate=%d", (int) robot.gyro.getAngle(), (int) robot.gyro.getRate());  
+			 					Timer.delay(.020);  
+			 				}  
+			   
+			 				robot.robotDrive.tankDrive(0, 0, true);				  
+			 				break;  
+			   
+			 			case 3:		// Drive forward to test gyro then stop.  
+			 				double left = -.60, right = -.60, gain = 1.0;  
+			 				  
+			 				while (robot.isAutonomous() && Math.abs(encoder.get()) < 3000)   
+			 				{  
+			 					LCD.printLine(3, "encoder=%d", encoder.get());  
+			 					LCD.printLine(5, "gyroAngle=%d, gyroRate=%d", (int) robot.gyro.getAngle(), (int) robot.gyro.getRate());  
+			   
+			 					left = left + (robot.gyro.getAngle() * gain);  
+			 					right = right - (robot.gyro.getAngle() * gain);  
+			   
+			 					robot.robotDrive.tankDrive(left, right);  
+			 					Timer.delay(.020);  
+			 				}  
+			   
+			 				robot.robotDrive.tankDrive(0, 0, true);				  
+			 				break;  
+
 		}
 		
 		Util.consoleLog("end");
