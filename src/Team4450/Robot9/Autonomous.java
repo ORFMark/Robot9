@@ -47,7 +47,7 @@ public class Autonomous
 		case 1:		// Drive forward to defense and stop.  
 			 	robot.robotDrive.tankDrive(-.66, -.60);  
 			 			  
-			 				while (robot.isAutonomous() && Math.abs(encoder.get()) < 300)   
+			 				while (robot.isAutonomous() && Math.abs(encoder.get()) < 350)   
 			 				{  
 			 					LCD.printLine(3, "encoder=%d", encoder.get());  
 			 					LCD.printLine(5, "gyroAngle=%d, gyroRate=%d", (int) robot.gyro.getAngle(), (int) robot.gyro.getRate());  

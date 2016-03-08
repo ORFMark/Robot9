@@ -135,22 +135,22 @@ class Teleop
 			if (ptoMode)
 			{
 			
-				rightY = utilityStick.GetY();
+				rightY = StickMath(utilityStick.GetY());
 				leftY = rightY;
 				if (rightY > 0 && ClimbLimitUp.get()) rightY = 0;
 				utilY = 0;
 			}
 			else if (invertDrive)
 			{
-					rightY = rightStick.GetY() *-1.0;
-					leftY = leftStick.GetY() * -1.0; 
-					utilY = 0.75*utilityStick.GetY();
+					rightY =StickMath(rightStick.GetY()) *-1.0;
+					leftY = StickMath(leftStick.GetY()) * -1.0; 
+					utilY = StickMath(0.75*utilityStick.GetY());
 			}
 			else
 			{
-    			rightY = rightStick.GetY();		// fwd/back right
-    			leftY = leftStick.GetY();		// fwd/back left\
-    			utilY=0.75*utilityStick.GetY();
+    			rightY = StickMath(rightStick.GetY());		// fwd/back right
+    			leftY = StickMath(leftStick.GetY());		// fwd/back left\
+    			utilY=StickMath(0.75*utilityStick.GetY());
 			}
 
 			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
@@ -230,6 +230,12 @@ class Teleop
 	{
 		Util.consoleLog();
 		ManipulatorValve.SetA();
+	}
+	
+	double StickMath(double x)
+	{
+		return x/2+.50;
+		
 	}
 	// Handle LaunchPad control events.
 	
@@ -420,7 +426,7 @@ class Teleop
 			 		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))
 			 				ball.StartAutoShoot(false);
 	    }
-
+	    
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
 	    {
 	    	//Util.consoleLog("%s", joyStickEvent.button.id.name());
