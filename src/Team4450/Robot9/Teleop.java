@@ -135,7 +135,7 @@ class Teleop
 			if (ptoMode)
 			{
 			
-				rightY = StickMath(utilityStick.GetY());
+				rightY = (utilityStick.GetY());
 				leftY = rightY;
 				if (rightY > 0 && ClimbLimitUp.get()) rightY = 0;
 				utilY = 0;
@@ -144,13 +144,13 @@ class Teleop
 			{
 					rightY =StickMath(rightStick.GetY()) *-1.0;
 					leftY = StickMath(leftStick.GetY()) * -1.0; 
-					utilY = StickMath(0.75*utilityStick.GetY());
+					utilY = (0.75*utilityStick.GetY());
 			}
 			else
 			{
     			rightY = StickMath(rightStick.GetY());		// fwd/back right
     			leftY = StickMath(leftStick.GetY());		// fwd/back left\
-    			utilY=StickMath(0.75*utilityStick.GetY());
+    			utilY=(0.75*utilityStick.GetY());
 			}
 
 			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
@@ -234,8 +234,10 @@ class Teleop
 	
 	double StickMath(double x)
 	{
+		if (x>0)
 		return x/2+.50;
-		
+		else
+		return x/2-.50;
 	}
 	// Handle LaunchPad control events.
 	
@@ -424,7 +426,7 @@ class Teleop
 			 			else    
 			 				ball.BeltOff();  
 			 		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))
-			 				ball.StartAutoShoot(false);
+			 				ball.StartShoot(false);
 	    }
 	    
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
