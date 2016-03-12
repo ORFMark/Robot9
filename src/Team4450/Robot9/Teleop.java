@@ -11,17 +11,19 @@ import Team4450.Lib.JoyStick.JoyStickButtonIDs;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.Relay;
 class Teleop
 {
 	private final Robot 		robot;
-	private JoyStick			rightStick, leftStick, utilityStick;
+	public JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
 	private final FestoDA		shifterValve, ManipulatorValve, ptoValve; //valve3, valve4;
 	private boolean				ptoMode = false, invertDrive=false;
 	public final Ball			ball;
 	public final Climb			climb;
+	private final Relay				headLight = new Relay(0, Relay.Direction.kForward); 
 	private final DigitalInput ClimbLimitUp = new DigitalInput(3);
-	private final DigitalInput ClimbLimitDown = new DigitalInput(4);
+	
 	//private final RevDigitBoard	revBoard = new RevDigitBoard();
 	//private final DigitalInput	hallEffectSensor = new DigitalInput(0);
 	//public double				RIGHTY, LEFTY, UTILY; 
@@ -38,7 +40,7 @@ class Teleop
 
 		//valve3 = new FestoDA(4);
 		//valve4 = new FestoDA(6);
-		ball = new Ball(robot);
+		ball = new Ball(robot, this);
 		climb = new Climb(robot);
 		//RIGHTY=rightStick.GetY();
 		//LEFTY=leftStick.GetY();
@@ -61,6 +63,7 @@ class Teleop
 		if (climb != null) climb.dispose();
 		if (ManipulatorValve != null) ManipulatorValve.dispose();
 		if (ClimbLimitUp != null) ClimbLimitUp.free();
+		if (headLight != null)	headLight.free();	
 		//if (valve3 != null) valve3.dispose();
 		//if (valve4 != null) valve4.dispose();
 		//if (revBoard != null) revBoard.dispose();
@@ -97,6 +100,7 @@ class Teleop
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_BLUE);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_GREEN);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED);
+		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED_RIGHT);
         launchPad.addLaunchPadEventListener(new LaunchPadListener());
         launchPad.Start();
 
@@ -135,7 +139,7 @@ class Teleop
 			if (ptoMode)
 			{
 			
-				rightY = (utilityStick.GetY());
+				rightY = utilityStick.GetY();
 				leftY = rightY;
 				if (rightY > 0 && ClimbLimitUp.get()) rightY = 0;
 				utilY = 0;
@@ -144,24 +148,24 @@ class Teleop
 			{
 					rightY =StickMath(rightStick.GetY()) *-1.0;
 					leftY = StickMath(leftStick.GetY()) * -1.0; 
-					utilY = (0.75*utilityStick.GetY());
+					utilY = 0.75*utilityStick.GetY();
 			}
 			else
 			{
     			rightY = StickMath(rightStick.GetY());		// fwd/back right
     			leftY = StickMath(leftStick.GetY());		// fwd/back left\
-    			utilY=(0.75*utilityStick.GetY());
+    			utilY=0.75*utilityStick.GetY();
 			}
 
 			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
-
+			
 			// This corrects stick alignment error when trying to drive straight. 
 			//if (Math.abs(rightY - leftY) < 0.2) rightY = leftY;
 			//commented in order to fix jerky drive
 			// Set motors.
 
 			robot.robotDrive.tankDrive(leftY, rightY);
-			robot.utilMotor.set(utilY);
+			
 			//LCD.printLine(7, "penc=%d  pv=%d", robot.RFTalon.getPulseWidthPosition(), robot.RFTalon.getPulseWidthVelocity());
 			//LCD.printLine(8, "aenc=%d  av=%d", robot.RFTalon.getAnalogInPosition(), robot.RFTalon.getAnalogInVelocity());
 			
@@ -234,11 +238,27 @@ class Teleop
 	
 	double StickMath(double x)
 	{
-		if (x>0)
+		if (x==0)
+			return 0;
+		else if (x>0)
 		return x/2+.50;
 		else
 		return x/2-.50;
+		
 	}
+	void lightOn()  
+	 	{  
+	 		headLight.set(Relay.Value.kOn);  
+	 		SmartDashboard.putBoolean("Light", true);  
+	 	}  
+	 	  
+	 	void lightOff()  
+	 	{  
+	 		headLight.set(Relay.Value.kOff);  
+	 		rightStick.FindButton(JoyStickButtonIDs.TRIGGER).latchedState = false;  
+	 		SmartDashboard.putBoolean("Light", false);  
+	 	}  
+
 	// Handle LaunchPad control events.
 	
 	public class LaunchPadListener implements LaunchPadEventListener 
@@ -313,7 +333,13 @@ class Teleop
 	    		
 			}
 			
-
+			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED))
+			{
+				if (launchPadEvent.control.latchedState)
+					lightOn();
+				else
+					lightOff();
+			}
 	    }
 	    
 		public void ButtonUp (LaunchPadEvent launchPadEvent) 
@@ -353,10 +379,14 @@ class Teleop
 	    
 
 	    if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
-		 	invertDrive = joyStickEvent.button.latchedState;  
-		   
+	    {
+	    	if (joyStickEvent.button.latchedState)
+	    	lightOn();  
+	    	else
+	    	lightOff();
+	    }  
 	if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
-		ball.StopAutoShoot();  
+		ball.StopShoot();  
 	    }
 	    public void ButtonUp(JoyStickEvent joyStickEvent) 
 	    {

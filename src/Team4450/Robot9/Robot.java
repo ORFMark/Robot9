@@ -30,12 +30,12 @@ import edu.wpi.first.wpilibj.Talon;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "MRB9-03.03.16-01";
+  static final String  	PROGRAM_NAME = "MRB9-03.12.16-01";
 
   // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
   Talon					LFPwmTalon, LRPwmTalon, RFPwmTalon, RRPwmTalon;
-  Talon					utilMotor;
+  
   RobotDrive      		robotDrive;
   
   final Joystick        utilityStick = new Joystick(2);	// 0 old ds configuration
@@ -44,6 +44,7 @@ public class Robot extends SampleRobot
   final Joystick		launchPad = new Joystick(3);
   
   final Compressor		compressor = new Compressor(0);
+  final Compressor		compressor1= new Compressor(1);
   final AnalogGyro 		gyro=new AnalogGyro(0);
 
   public Properties		robotProperties;
@@ -109,6 +110,10 @@ public class Robot extends SampleRobot
       
    		PowerDistributionPanel PDP = new PowerDistributionPanel();
    		PDP.clearStickyFaults();
+   		
+   		// clear PCM StickyFaults
+   		compressor.clearAllPCMStickyFaults();
+   		compressor1.clearAllPCMStickyFaults();
 
    		// Configure motor controllers and RobotDrive.
         // Competition robot uses CAN Talons clone uses PWM Talons.
@@ -148,8 +153,8 @@ public class Robot extends SampleRobot
    		monitorBatteryThread = new MonitorBattery(ds);
    		monitorBatteryThread.start();
 
-   		gyro.initGyro(); 
-   		gyro.calibrate();
+   		//gyro.initGyro(); 
+   		//gyro.calibrate();
    		
    		monitorCompressorThread = new MonitorCompressor();
    		monitorCompressorThread.start();
@@ -184,6 +189,9 @@ public class Robot extends SampleRobot
 		  SmartDashboard.putBoolean("Teleop Mode", false);
 		  SmartDashboard.putBoolean("PTO", false);
 		  SmartDashboard.putBoolean("FMS", ds.isFMSAttached());
+		  SmartDashboard.putBoolean("ShooterMotor", false);
+		  SmartDashboard.putBoolean("PickupMotor", false);
+		  
 
 		  Util.consoleLog("end");
 	  }
@@ -284,8 +292,8 @@ public class Robot extends SampleRobot
 	  LSlaveCanTalon = new CANTalon(5);
 	  RSlaveCanTalon = new CANTalon(6);
 	  
-	  utilMotor=new Talon(2);
-	  utilMotor.setInverted(true);
+	 
+	  
 	  
 	  robotDrive = new RobotDrive(LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon);
 

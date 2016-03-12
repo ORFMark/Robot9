@@ -24,7 +24,7 @@ public class Autonomous
 		
 		this.robot = robot;
 		teleop=new Teleop(robot);
-		ball=new Ball(robot);
+		ball=new Ball(robot, null);
 		teleop.ptoDisable();
 	}
 
@@ -92,7 +92,7 @@ public class Autonomous
 			 					case 4:   //Fire the shooter from the Spy
 			 				if (robot.isAutonomous())
 			 				{
-			 					ball.StartAutoShoot(false);
+			 					ball.StartAutoShoot(true);
 			 				}
 			 				break;
 			 					case 5:		// Drive forward to test gyro then stop.  
