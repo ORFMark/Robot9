@@ -18,11 +18,11 @@ class Teleop
 	public JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
 	private final FestoDA		shifterValve, ManipulatorValve, ptoValve; //valve3, valve4;
-	private boolean				ptoMode = false, invertDrive=false;
+	private boolean				ptoMode = false, invertDrive=false, climbMode=false;
 	public final Ball			ball;
 	public final Climb			climb;
 	private final Relay				headLight = new Relay(0, Relay.Direction.kForward); 
-	private final DigitalInput ClimbLimitUp = new DigitalInput(3);
+	public final DigitalInput ClimbLimitUp = new DigitalInput(3);
 	
 	//private final RevDigitBoard	revBoard = new RevDigitBoard();
 	//private final DigitalInput	hallEffectSensor = new DigitalInput(0);
@@ -41,7 +41,7 @@ class Teleop
 		//valve3 = new FestoDA(4);
 		//valve4 = new FestoDA(6);
 		ball = new Ball(robot, this);
-		climb = new Climb(robot);
+		climb = new Climb(robot, this);
 		//RIGHTY=rightStick.GetY();
 		//LEFTY=leftStick.GetY();
 		//UTILY=utilityStick.GetY();
@@ -87,6 +87,7 @@ class Teleop
 		ptoDisable();
 		climb.ClimbUp();
 		ManipulatorUp();
+		climb.armsIn();
 		
 		//valve3.SetA();
 		//valve4.SetA();
@@ -101,6 +102,7 @@ class Teleop
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_GREEN);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED_RIGHT);
+		launchPad.AddControl(LaunchPadControlIDs.ROCKER_RIGHT);
         launchPad.addLaunchPadEventListener(new LaunchPadListener());
         launchPad.Start();
 
@@ -304,13 +306,21 @@ class Teleop
 			
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_YELLOW)) 
 			{
+				if (climbMode=false)
+				{
 				Util.consoleLog();
 				if (launchPadEvent.control.latchedState) 
-				{
+				
 					ball.AngleUp();
-				}
+				
 				else 
 					ball.AngleDown();
+				}
+				else
+				{
+					Util.consoleLog();
+					climb.StartAutoClimb();
+				}
 			
 			}
 	    	
@@ -333,12 +343,22 @@ class Teleop
 	    		
 			}
 			
-			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED))
+			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED_RIGHT))
 			{
-				if (launchPadEvent.control.latchedState)
-					lightOn();
+				if (climbMode = false)
+				{
+					Util.consoleLog();
+					if (launchPadEvent.control.latchedState)
+						lightOn();
+					else
+						lightOff();
+				}
 				else
-					lightOff();
+				{
+					Util.consoleLog();
+					climb.StopAutoClimb();
+				}
+				
 			}
 	    }
 	    
@@ -358,6 +378,13 @@ class Teleop
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
 				else
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
+			
+			if (launchPadEvent.control.id.equals(LaunchPadControlIDs.ROCKER_LEFT_FRONT))
+				if (launchPadEvent.control.latchedState)
+					climbMode=true;
+				else
+					climbMode=false;
+				
 	    }
 	}
 
