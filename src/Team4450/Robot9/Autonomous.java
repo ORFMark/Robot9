@@ -6,7 +6,7 @@ import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
+import edu.wpi.first.wpilibj.*;
 public class Autonomous
 {
 	private final Robot	robot;
@@ -81,6 +81,7 @@ public class Autonomous
 			 					LCD.printLine(5, "gyroAngle=%d, gyroRate=%d", (int) robot.gyro.getAngle(), (int) robot.gyro.getRate());  
 			 					Timer.delay(.020);  
 			 				}  
+			 				encoder.reset();
 			 				robot.robotDrive.tankDrive(-.94, -.90);
 			 				while (robot.isAutonomous() && Math.abs(encoder.get())<400 )   
 			 				{  
@@ -93,7 +94,9 @@ public class Autonomous
 			 				if (robot.isAutonomous())
 			 				{
 			 					ball.StartAutoShoot(true);
+			 					Timer.delay(7.0);
 			 				}
+			 					
 			 				break;
 			 					case 5:		// Drive forward to test gyro then stop.  
 					 				double left = -.60, right = -.60, gain = 1.0;  

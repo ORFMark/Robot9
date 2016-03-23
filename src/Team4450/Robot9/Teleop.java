@@ -17,7 +17,7 @@ class Teleop
 	private final Robot 		robot;
 	public JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
-	private final FestoDA		shifterValve, ManipulatorValve, ptoValve; //valve3, valve4;
+	private final FestoDA		shifterValve,  ptoValve; //valve3, valve4;
 	private boolean				ptoMode = false, invertDrive=false, climbMode=false;
 	public final Ball			ball;
 	public final Climb			climb;
@@ -36,7 +36,7 @@ class Teleop
 		
 		shifterValve = new FestoDA(0,2);
 		ptoValve = new FestoDA(0,0);
-		ManipulatorValve=new FestoDA (1,2);
+		
 
 		//valve3 = new FestoDA(4);
 		//valve4 = new FestoDA(6);
@@ -61,7 +61,7 @@ class Teleop
 		if (ptoValve != null) ptoValve.dispose();
 		if (ball != null) ball.dispose();
 		if (climb != null) climb.dispose();
-		if (ManipulatorValve != null) ManipulatorValve.dispose();
+		//if (ManipulatorValve != null) ManipulatorValve.dispose();
 		if (ClimbLimitUp != null) ClimbLimitUp.free();
 		if (headLight != null)	headLight.free();	
 		//if (valve3 != null) valve3.dispose();
@@ -86,7 +86,7 @@ class Teleop
 		shifterLow();
 		ptoDisable();
 		climb.ClimbUp();
-		ManipulatorUp();
+		//ManipulatorUp();
 		climb.armsIn();
 		
 		//valve3.SetA();
@@ -96,6 +96,7 @@ class Teleop
 		
 		launchPad = new LaunchPad(robot.launchPad, LaunchPadControlIDs.BUTTON_BLACK, this);
 		LaunchPadControl lpControl = launchPad.AddControl(LaunchPadControlIDs.ROCKER_LEFT_FRONT);
+		launchPad.AddControl(LaunchPadControlIDs.ROCKER_RIGHT);
 		lpControl.controlType = LaunchPadControlTypes.SWITCH;
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_YELLOW);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_BLUE);
@@ -227,6 +228,7 @@ class Teleop
 		
 		SmartDashboard.putBoolean("PTO", true);
 	}
+	/*
 	void ManipulatorUp()
 	{
 		Util.consoleLog();
@@ -237,15 +239,21 @@ class Teleop
 		Util.consoleLog();
 		ManipulatorValve.SetA();
 	}
-	
+	*/
 	double StickMath(double x)
 	{
 		if (x==0)
 			return 0;
-		else if (x>0)
-		return x/2+.50;
+		else if (0<x && x<0.5)
+		return (x/5+.40);
+		else if (0.5 < x && x <= 1)
+		return x;
+		else if (-.5<x && x<0)
+			return (x/5-0.4);
+		else if (-1<=x && -0.5>x)
+			return x;
 		else
-		return x/2-.50;
+			return 0;
 		
 	}
 	void lightOn()  
@@ -372,19 +380,23 @@ class Teleop
 	    	Util.consoleLog("%s", launchPadEvent.control.id.name());
 
 	    	// Change which USB camera is being served by the RoboRio when using dual usb cameras.
-			
+			/*
 			if (launchPadEvent.control.id.equals(LaunchPadControlIDs.ROCKER_LEFT_FRONT))
 				if (launchPadEvent.control.latchedState)
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
 				else
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
-			
+			*/
 			if (launchPadEvent.control.id.equals(LaunchPadControlIDs.ROCKER_LEFT_FRONT))
 				if (launchPadEvent.control.latchedState)
 					climbMode=true;
 				else
 					climbMode=false;
-				
+			if 	(launchPadEvent.control.id.equals(LaunchPadControlIDs.ROCKER_RIGHT))
+				if (launchPadEvent.control.latchedState)
+					ball.ShooterPowerDown();
+				else
+					ball.ShooterPowerUp();
 	    }
 	}
 
@@ -429,13 +441,13 @@ class Teleop
 	    public void ButtonDown(JoyStickEvent joyStickEvent) 
 	    {
 			Util.consoleLog("%s, latchedState=%b", joyStickEvent.button.id.name(),  joyStickEvent.button.latchedState);
-	    	
+	  /*  	
 			if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
 			 	if (joyStickEvent.button.latchedState)
-			 		ManipulatorDown();
+			 		//ManipulatorDown();
 			 	else
-			 		ManipulatorUp();
-			   
+			 		//ManipulatorUp();
+		*/	   
 		if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
 			if (joyStickEvent.button.latchedState)
 				shifterLow();

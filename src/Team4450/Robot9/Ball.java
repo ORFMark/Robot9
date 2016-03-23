@@ -1,6 +1,7 @@
 package Team4450.Robot9;
 
 import Team4450.Lib.*;
+import Team4450.Lib.JoyStick.JoyStickButtonIDs;
 import Team4450.Lib.LaunchPad.LaunchPadControlIDs;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.smartdashboard.*;
@@ -17,6 +18,7 @@ public class Ball {
 		private final SpeedController 		PickupMotor;
 		private final DigitalInput BallLimit = new DigitalInput(0);
 		public final Teleop	teleop;
+		public double shooterPower=1.0;
 		Thread				autoPickupThread;
 		Thread autoShootThread;
 		Thread ShootThread;
@@ -70,14 +72,15 @@ public class Ball {
 		}
 		void Fire() {
 			Util.consoleLog();
-			ShooterMotor1.set(1);
-			ShooterMotor2.set(1);
+			ShooterMotor1.set(shooterPower);
+			ShooterMotor2.set(shooterPower);
 			SmartDashboard.putBoolean("ShooterMotor", true);
 			}
 		void Reload() {
 			Util.consoleLog();
 			ShooterMotor1.set(0);
 			ShooterMotor2.set(0);
+			if (teleop != null) teleop.rightStick.FindButton(JoyStickButtonIDs.TRIGGER).latchedState = false;
 			SmartDashboard.putBoolean("ShooterMotor", false);
 		}
 		void PickupDown() {
@@ -126,6 +129,18 @@ public class Ball {
 			if (ShootThread !=null) ShootThread.interrupt();
 			ShootThread = null;
 		}
+		void ShooterPowerUp()
+		{
+			Util.consoleLog();
+			shooterPower=1.0;
+		}
+		
+		void ShooterPowerDown()
+		{
+			Util.consoleLog();
+			shooterPower=0.8;
+		}
+		
 	private class AutoPickup extends Thread {
 		AutoPickup()
 		{
@@ -174,15 +189,17 @@ private class AutoShoot extends Thread {
 		try {
 			Util.consoleLog();
 			Fire();
-			sleep(3000);
+			sleep(5000);
 			BeltIn();
 			sleep(1000);
 			teleop.lightOff();
 		} 
 		catch (InterruptedException e) {} 
 		  catch (Throwable e) {e.printStackTrace(Util.logPrintStream);} 
+		Util.consoleLog();
 		BeltOff();
 		Reload();
+		StopAutoShoot();
 	}
 }
 	public void StartShoot(boolean angleUp) {
@@ -213,12 +230,13 @@ private class AutoShoot extends Thread {
 				BeltIn();
 				sleep(1000);
 				teleop.lightOff();
+				BeltOff();
 			}
 			
 			catch (InterruptedException e) {} 
 			  catch (Throwable e) {e.printStackTrace(Util.logPrintStream);} 
 			BeltOff();
-			Reload();
+			
 		
 		}
 }

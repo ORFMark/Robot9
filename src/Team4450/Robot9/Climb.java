@@ -20,6 +20,7 @@ public class Climb
 	void dispose() {
 		Util.consoleLog();
 		if (ClimbAnglePiston != null) ClimbAnglePiston.dispose();
+		if (ArmPiston != null) ArmPiston.dispose();
 	}
 	void ClimbUp()
 	{
