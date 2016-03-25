@@ -83,7 +83,7 @@ public class Autonomous
 			 				}  
 			 				encoder.reset();
 			 				robot.robotDrive.tankDrive(-.94, -.90);
-			 				while (robot.isAutonomous() && Math.abs(encoder.get())<400 )   
+			 				while (robot.isAutonomous() && Math.abs(encoder.get())<800 )   
 			 				{  
 			 					LCD.printLine(3, "encoder=%d", encoder.get());  
 			 					LCD.printLine(5, "gyroAngle=%d, gyroRate=%d", (int) robot.gyro.getAngle(), (int) robot.gyro.getRate());  

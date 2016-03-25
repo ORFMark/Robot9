@@ -133,12 +133,14 @@ public class Ball {
 		{
 			Util.consoleLog();
 			shooterPower=1.0;
+			SmartDashboard.putBoolean("ShooterLowPower", false); 
 		}
 		
 		void ShooterPowerDown()
 		{
 			Util.consoleLog();
 			shooterPower=0.8;
+			SmartDashboard.putBoolean("ShooterLowPower", true); 
 		}
 		
 	private class AutoPickup extends Thread {
@@ -192,7 +194,7 @@ private class AutoShoot extends Thread {
 			sleep(5000);
 			BeltIn();
 			sleep(1000);
-			teleop.lightOff();
+			//teleop.lightOff();
 		} 
 		catch (InterruptedException e) {} 
 		  catch (Throwable e) {e.printStackTrace(Util.logPrintStream);} 
@@ -229,7 +231,7 @@ private class AutoShoot extends Thread {
 				//sleep(3000);
 				BeltIn();
 				sleep(1000);
-				teleop.lightOff();
+			//	teleop.lightOff();
 				BeltOff();
 			}
 			

@@ -191,6 +191,8 @@ public class Robot extends SampleRobot
 		  SmartDashboard.putBoolean("FMS", ds.isFMSAttached());
 		  SmartDashboard.putBoolean("ShooterMotor", false);
 		  SmartDashboard.putBoolean("PickupMotor", false);
+		  SmartDashboard.putBoolean("ShooterLowPower", false);
+		  SmartDashboard.putBoolean("LSOverride", false);
 		  
 
 		  Util.consoleLog("end");

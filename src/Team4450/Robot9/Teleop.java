@@ -18,7 +18,7 @@ class Teleop
 	public JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
 	private final FestoDA		shifterValve,  ptoValve; //valve3, valve4;
-	private boolean				ptoMode = false, invertDrive=false, climbMode=false;
+	private boolean				ptoMode = false, invertDrive=false, climbMode=false, limitSwitchEnabled = true;
 	public final Ball			ball;
 	public final Climb			climb;
 	private final Relay				headLight = new Relay(0, Relay.Direction.kForward); 
@@ -144,7 +144,7 @@ class Teleop
 			
 				rightY = utilityStick.GetY();
 				leftY = rightY;
-				if (rightY > 0 && ClimbLimitUp.get()) rightY = 0;
+				if (rightY > 0 && ClimbLimitUp.get()&& limitSwitchEnabled) rightY = 0;
 				utilY = 0;
 			}
 			else if (invertDrive)
@@ -256,6 +256,7 @@ class Teleop
 			return 0;
 		
 	}
+	/*
 	void lightOn()  
 	 	{  
 	 		headLight.set(Relay.Value.kOn);  
@@ -268,7 +269,7 @@ class Teleop
 	 		rightStick.FindButton(JoyStickButtonIDs.TRIGGER).latchedState = false;  
 	 		SmartDashboard.putBoolean("Light", false);  
 	 	}  
-
+*/
 	// Handle LaunchPad control events.
 	
 	public class LaunchPadListener implements LaunchPadEventListener 
@@ -356,10 +357,8 @@ class Teleop
 				if (climbMode = false)
 				{
 					Util.consoleLog();
-					if (launchPadEvent.control.latchedState)
-						lightOn();
-					else
-						lightOff();
+				limitSwitchEnabled=!limitSwitchEnabled;
+					SmartDashboard.putBoolean("LSOverride", limitSwitchEnabled);
 				}
 				else
 				{
@@ -395,6 +394,7 @@ class Teleop
 			if 	(launchPadEvent.control.id.equals(LaunchPadControlIDs.ROCKER_RIGHT))
 				if (launchPadEvent.control.latchedState)
 					ball.ShooterPowerDown();
+			
 				else
 					ball.ShooterPowerUp();
 	    }
@@ -416,14 +416,15 @@ class Teleop
 				else
 					((CameraFeed) robot.cameraThread).ChangeCamera(((CameraFeed) robot.cameraThread).cam1);			
 	    
-
+/*
 	    if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TRIGGER))  
 	    {
 	    	if (joyStickEvent.button.latchedState)
 	    	lightOn();  
 	    	else
 	    	lightOff();
-	    }  
+	    }
+	    */  
 	if (joyStickEvent.button.id.equals(JoyStickButtonIDs.TOP_MIDDLE))  
 		ball.StopShoot();  
 	    }
