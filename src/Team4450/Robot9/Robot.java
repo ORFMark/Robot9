@@ -20,6 +20,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.CANTalon;
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import edu.wpi.first.wpilibj.*;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -30,7 +32,7 @@ import edu.wpi.first.wpilibj.Talon;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "MRB9-03.12.16-01";
+  static final String  	PROGRAM_NAME = "MRB9-03.25.16-01";
 
   // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
@@ -172,8 +174,14 @@ public class Robot extends SampleRobot
    		Util.consoleLog("end");
     }
     catch (Throwable e) {e.printStackTrace(Util.logPrintStream);}
-  }
-    
+  
+
+      		 
+      		Util.consoleLog("end"); 
+       } 
+        
+      
+
   public void disabled()
   {
 	  try

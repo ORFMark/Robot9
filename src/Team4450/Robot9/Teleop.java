@@ -17,7 +17,7 @@ class Teleop
 	private final Robot 		robot;
 	public JoyStick			rightStick, leftStick, utilityStick;
 	private LaunchPad			launchPad;
-	private final FestoDA		shifterValve,  ptoValve; //valve3, valve4;
+	private final FestoDA		shifterValve,  ptoValve, armValve; //valve3, valve4;
 	private boolean				ptoMode = false, invertDrive=false, climbMode=false, limitSwitchEnabled = true;
 	public final Ball			ball;
 	public final Climb			climb;
@@ -36,6 +36,7 @@ class Teleop
 		
 		shifterValve = new FestoDA(0,2);
 		ptoValve = new FestoDA(0,0);
+		armValve = new FestoDA(1,4);
 		
 
 		//valve3 = new FestoDA(4);
@@ -256,6 +257,16 @@ class Teleop
 			return 0;
 		
 	}
+	void ArmUp()
+	{
+		Util.consoleLog();
+		armValve.SetA();
+	}
+	void ArmDown()
+	{
+		Util.consoleLog();
+		armValve.SetB();
+	}
 	/*
 	void lightOn()  
 	 	{  
@@ -292,14 +303,14 @@ class Teleop
 				else
 					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
 	
-			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
-			{
+			//if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
+			//{
 			//	Util.consoleLog();
 			// if (launchPadEvent.control.latchedState)
     		//		shifterHigh();
     		//	else
     		//		shifterLow();
-			}
+			//}
 
 			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
 			{
@@ -315,8 +326,9 @@ class Teleop
 			
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_YELLOW)) 
 			{
-				if (climbMode=false)
-				{
+				
+			//	if (climbMode=false)
+				//{
 				Util.consoleLog();
 				if (launchPadEvent.control.latchedState) 
 				
@@ -324,13 +336,14 @@ class Teleop
 				
 				else 
 					ball.AngleDown();
+				/*
 				}
 				else
 				{
 					Util.consoleLog();
 					climb.StartAutoClimb();
 				}
-			
+			*/
 			}
 	    	
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_BLACK)) 

@@ -139,7 +139,7 @@ public class Ball {
 		void ShooterPowerDown()
 		{
 			Util.consoleLog();
-			shooterPower=0.8;
+			shooterPower=0.65;
 			SmartDashboard.putBoolean("ShooterLowPower", true); 
 		}
 		
