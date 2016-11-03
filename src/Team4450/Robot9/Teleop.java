@@ -10,24 +10,30 @@ import Team4450.Lib.LaunchPad.*;
 import Team4450.Lib.JoyStick.JoyStickButtonIDs;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.Relay;
+@SuppressWarnings("unused")
 class Teleop
 {
 	private final Robot 		robot;
 	public JoyStick			rightStick, leftStick, utilityStick;
-	private LaunchPad			launchPad;
+	public LaunchPad			launchPad;
 	private final FestoDA		shifterValve,  ptoValve, armValve; //valve3, valve4;
 	private boolean				ptoMode = false, invertDrive=false, climbMode=false, limitSwitchEnabled = true;
+	private boolean				autoTarget = false;
 	public final Ball			ball;
 	public final Climb			climb;
 	private final Relay				headLight = new Relay(0, Relay.Direction.kForward); 
 	public final DigitalInput ClimbLimitUp = new DigitalInput(3);
-	
+	private Vision2016			vision= new Vision2016();
+	private Vision2016.ParticleReport 	par;
 	//private final RevDigitBoard	revBoard = new RevDigitBoard();
 	//private final DigitalInput	hallEffectSensor = new DigitalInput(0);
 	//public double				RIGHTY, LEFTY, UTILY; 
 	// Constructor.
+	// encoder is plugged into dio port 1 - orange=+5v blue=signal, dio port 2 black=gnd yellow=signal. 
+		private Encoder				encoder = new Encoder(1, 2, true, EncodingType.k4X);
 	Teleop(Robot robot)
 	{
 		Util.consoleLog();
@@ -64,7 +70,8 @@ class Teleop
 		if (climb != null) climb.dispose();
 		//if (ManipulatorValve != null) ManipulatorValve.dispose();
 		if (ClimbLimitUp != null) ClimbLimitUp.free();
-		if (headLight != null)	headLight.free();	
+		if (headLight != null)	headLight.free();
+		if (armValve != null) armValve.dispose();
 		//if (valve3 != null) valve3.dispose();
 		//if (valve4 != null) valve4.dispose();
 		//if (revBoard != null) revBoard.dispose();
@@ -89,6 +96,10 @@ class Teleop
 		climb.ClimbUp();
 		//ManipulatorUp();
 		climb.armsIn();
+		ArmUp();
+		ball.PickupUp();
+		ball.AngleUp();
+		
 		
 		//valve3.SetA();
 		//valve4.SetA();
@@ -97,6 +108,7 @@ class Teleop
 		
 		launchPad = new LaunchPad(robot.launchPad, LaunchPadControlIDs.BUTTON_BLACK, this);
 		LaunchPadControl lpControl = launchPad.AddControl(LaunchPadControlIDs.ROCKER_LEFT_FRONT);
+		lpControl.controlType = LaunchPadControlTypes.SWITCH;
 		launchPad.AddControl(LaunchPadControlIDs.ROCKER_RIGHT);
 		lpControl.controlType = LaunchPadControlTypes.SWITCH;
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_YELLOW);
@@ -104,6 +116,7 @@ class Teleop
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_GREEN);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED);
 		launchPad.AddControl(LaunchPadControlIDs.BUTTON_RED_RIGHT);
+		launchPad.AddControl(LaunchPadControlIDs.BUTTON_BLUE_RIGHT);
 		launchPad.AddControl(LaunchPadControlIDs.ROCKER_RIGHT);
         launchPad.addLaunchPadEventListener(new LaunchPadListener());
         launchPad.Start();
@@ -161,14 +174,18 @@ class Teleop
     			utilY=0.75*utilityStick.GetY();
 			}
 
+			LCD.printLine(3, "encoder=%d  climbUp=%b", encoder.get(), ClimbLimitUp.get()); 
 			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
+			LCD.printLine(6, "shooter encoder=%d  rate=%.3f", ball.encoder.get(), ball.encoder.getRate() * 60);  
+			      
+
 			
 			// This corrects stick alignment error when trying to drive straight. 
 			//if (Math.abs(rightY - leftY) < 0.2) rightY = leftY;
 			//commented in order to fix jerky drive
 			// Set motors.
 
-			robot.robotDrive.tankDrive(leftY, rightY);
+			if (!autoTarget) robot.robotDrive.tankDrive(leftY, rightY);
 			
 			//LCD.printLine(7, "penc=%d  pv=%d", robot.RFTalon.getPulseWidthPosition(), robot.RFTalon.getPulseWidthVelocity());
 			//LCD.printLine(8, "aenc=%d  av=%d", robot.RFTalon.getAnalogInPosition(), robot.RFTalon.getAnalogInVelocity());
@@ -280,7 +297,78 @@ class Teleop
 	 		rightStick.FindButton(JoyStickButtonIDs.TRIGGER).latchedState = false;  
 	 		SmartDashboard.putBoolean("Light", false);  
 	 	}  
-*/
+*/ 
+	/**
+	 * Rotate the robot by bumping appropriate motors based on the X offset
+	 * from center of camera image. 
+	 * @param value Target offset. + value means target is right of center so
+	 * run right side motors backwards. - value means target is left of ceneter so run
+	 * left side motors backwards.
+	 */
+	void bump(int value)
+	{
+		Util.consoleLog("%d", value);
+
+		if (value > 0)
+			robot.robotDrive.tankDrive(.60, 0);
+		else
+			robot.robotDrive.tankDrive(0, .60);
+			
+		Timer.delay(.10);
+	}
+	
+    /**
+     * Check current camera image for the target. 
+     * @return A particle report for the target.
+     */
+	Vision2016.ParticleReport findTarget()
+	{
+		Util.consoleLog();
+		
+		par = vision.CheckForTarget(robot.cameraThread.CurrentImage());
+		
+		if (par != null) Util.consoleLog("Target=%s", par.toString());
+		
+		return par;
+	}
+	
+	/**
+	 * Loops checking camera images for target. Stops when no target found.
+	 * If target found, check target X location and if needed bump the bot
+	 * in the appropriate direction and then check target location again.
+	 */
+	void seekTarget()
+	{
+		Vision2016.ParticleReport par;
+		
+		Util.consoleLog();
+
+		SmartDashboard.putBoolean("TargetLocked", false);
+		SmartDashboard.putBoolean("AutoTarget", true);
+
+		par = findTarget();
+
+		autoTarget = true;
+		
+		while (robot.isEnabled() && autoTarget && par != null)
+		{
+			if (Math.abs(320 - par.CenterX) > 10)
+			{
+				bump(320 - par.CenterX);
+				
+				par = findTarget();
+			}
+			else
+			{
+				SmartDashboard.putBoolean("TargetLocked", true);
+				par = null;
+			}
+		}
+		
+		autoTarget = false;
+
+		SmartDashboard.putBoolean("AutoTarget", false);
+	}
 	// Handle LaunchPad control events.
 	
 	public class LaunchPadListener implements LaunchPadEventListener 
@@ -299,10 +387,20 @@ class Teleop
 				
 			if (launchPadEvent.control.id.equals(LaunchPad.LaunchPadControlIDs.BUTTON_BLACK))
 				if (launchPadEvent.control.latchedState)
-					robot.cameraThread.ChangeCamera(robot.cameraThread.cam2);
+					ArmDown();
 				else
-					robot.cameraThread.ChangeCamera(robot.cameraThread.cam1);
+					ArmUp();
 	
+			if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE_RIGHT)  
+				 	{  
+						Util.consoleLog();
+						if(!autoTarget)
+							seekTarget();
+						else
+							autoTarget=false;
+				 		  
+				 	}  
+
 			//if (launchPadEvent.control.id == LaunchPadControlIDs.BUTTON_BLUE)
 			//{
 			//	Util.consoleLog();
@@ -346,16 +444,8 @@ class Teleop
 			*/
 			}
 	    	
+			
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_BLACK)) 
-			{
-				Util.consoleLog();
-				//ball.BeltIn();
-				//if (launchPadEvent.control.latchedState)
-			//		climb.AngleIn();
-				//else
-				//	climb.AngleOut();
-			}
-			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED)) 
 			{
 				Util.consoleLog();
 	    		if (launchPadEvent.control.latchedState)
@@ -367,18 +457,18 @@ class Teleop
 			
 			if (launchPadEvent.control.id == (LaunchPadControlIDs.BUTTON_RED_RIGHT))
 			{
-				if (climbMode = false)
-				{
+			//	if (climbMode = false)
+				//{
 					Util.consoleLog();
 				limitSwitchEnabled=!limitSwitchEnabled;
 					SmartDashboard.putBoolean("LSOverride", limitSwitchEnabled);
-				}
-				else
-				{
-					Util.consoleLog();
-					climb.StopAutoClimb();
-				}
-				
+				//}
+//				else
+//				{
+//					Util.consoleLog();
+//					climb.StopAutoClimb();
+//				}
+//				
 			}
 	    }
 	    
