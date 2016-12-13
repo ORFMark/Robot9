@@ -36,11 +36,8 @@ class Teleop
 
 	private Vision2016			vision = new Vision2016();
 
-	// Encoder is plugged into dio port 1 - orange=+5v blue=signal, dio port 2 black=gnd yellow=signal. 
+	// Wheel encoder is plugged into dio port 1 - orange=+5v blue=signal, dio port 2 black=gnd yellow=signal. 
 	private Encoder				encoder = new Encoder(1, 2, true, EncodingType.k4X);
-
-	// encoder is plugged into dio port 4 - orange=+5v blue=signal, dio port 5 black=gnd yellow=signal. 
-	public Encoder				turretEncoder = new Encoder(6, 7, true, EncodingType.k4X);
 
 	// Encoder ribbon cable to dio ports: ribbon wire 2 = orange, 5 = yellow, 7 = blue, 10 = black
 
@@ -76,7 +73,6 @@ class Teleop
 		//if (armMotor != null) armMotor.free();
 		if (climbUpSwitch != null) climbUpSwitch.free();
 		if (encoder != null) encoder.free();
-		if (turretEncoder != null) turretEncoder.free();
 		if (headLight != null) headLight.free();
 		//if (revBoard != null) revBoard.dispose();
 		//if (hallEffectSensor != null) hallEffectSensor.free();
@@ -84,7 +80,7 @@ class Teleop
 
 	void OperatorControl()
 	{
-		double	rightY, leftY, utilY;
+		double	rightY, leftY, utilX;
         
         // Motor safety turned off during initialization.
         robot.robotDrive.setSafetyEnabled(false);
@@ -131,7 +127,7 @@ class Teleop
         
 		rightStick = new JoyStick(robot.rightStick, "RightStick", JoyStickButtonIDs.TOP_LEFT, this);
         rightStick.AddButton(JoyStickButtonIDs.TOP_MIDDLE);
-		//rightStick.AddButton(JoyStickButtonIDs.TRIGGER);
+		rightStick.AddButton(JoyStickButtonIDs.TRIGGER);
         rightStick.addJoyStickEventListener(new RightStickListener());
         rightStick.Start();
         
@@ -182,14 +178,16 @@ class Teleop
     			leftY = stickLogCorrection(leftStick.GetY());	// fwd/back left
 			}
 			
+			utilX = utilityStick.GetX();
+			
 			LCD.printLine(3, "encoder=%d  climbUp=%b", encoder.get(), climbUpSwitch.get());
-			LCD.printLine(4, "leftY=%.4f  rightY=%.4f", leftY, rightY);
+			LCD.printLine(4, "leftY=%.4f  rightY=%.4f utilX=%.4f", leftY, rightY, utilX);
 			LCD.printLine(5, "gyroAngle=%d, gyroRate=%d", (int) robot.gyro.getAngle(), (int) robot.gyro.getRate());
 			// encoder rate is revolutions per second.
 			LCD.printLine(6, "encoder=%d rpm=%.0f pwr=%.2f pwrR=%.2f", shooter.shooterSpeedSource.get(), 
 							shooter.shooterSpeedSource.getRate() * 60, shooter.shooterMotorControl.get(),
 							shooter.shooterMotorControl.get());
-			LCD.printLine(7, "turretEncoder=%d", turretEncoder.get());
+			LCD.printLine(7, "turretEncoder=%d", shooter.turretEncoder.get());
 			
 			//LCD.printLine(7, "shooterspeedsource=%.0f", shooter.shooterSpeedSource.pidGet());
 			//LCD.printLine(7, "hall effect=%b", hallEffectSensorDigital.get());
@@ -202,6 +200,10 @@ class Teleop
 
 			if (!autoTarget && !climbPrepInProgress) robot.robotDrive.tankDrive(leftY, rightY);
 
+			// Rotate turret as directed by utility stick left/right deflection.
+			
+			if (!autoTarget) shooter.rotateTurret(utilX);
+			
 			// End of driving loop.
 			
 			Timer.delay(.020);	// wait 20ms for update from driver station.
@@ -406,9 +408,9 @@ class Teleop
 		Util.consoleLog("%d", value);
 
 		if (value > 0)
-			robot.robotDrive.tankDrive(.60, -.60);	// + turn right.
+			robot.robotDrive.tankDrive(.60, -.60);	// + turn left. motor - = forward.
 		else
-			robot.robotDrive.tankDrive(-.60, .60);	// - turn left.
+			robot.robotDrive.tankDrive(-.60, .60);	// - turn right.
 			
 		// larger bump the further off target we are.
 		
@@ -416,6 +418,33 @@ class Teleop
 			Timer.delay(.1);
 		else
 			Timer.delay(.25);
+		
+		robot.robotDrive.tankDrive(0, 0);
+	}
+	
+	/**
+	 * Rotate the robot by bumping turret motor based on the X axis offset
+	 * from center of camera image. 
+	 * @param value Target offset. + value means target is left of center so
+	 * run right side motors backwards. - value means target is right of center so run
+	 * left side motors backwards. Currently the magnitude of the offset is not used but
+	 * could be if we upgrade the movement function like using PID or ?
+	 */
+	void bumpTurret(int value)
+	{
+		Util.consoleLog("%d", value);
+
+		if (value > 0)
+			shooter.rotateTurret(.10);	// + turn leftt.
+		else
+			shooter.rotateTurret(-.10);	// - turn right.
+			
+		// larger bump the further off target we are.
+		
+		if (Math.abs(value) < 100)
+			Timer.delay(.05);
+		else
+			Timer.delay(.10);
 		
 		robot.robotDrive.tankDrive(0, 0);
 	}
@@ -444,6 +473,8 @@ class Teleop
 		{
 			if (Math.abs(320 - par.CenterX) > 5)
 			{
+				// 320 - par.centerX will be + if target left of center, - if right of center.
+				
 				bump(320 - par.CenterX);
 				
 				par = vision.CheckForTarget(robot.cameraThread.CurrentImage());
@@ -491,6 +522,8 @@ class Teleop
 
 			if (Math.abs(160 - (int) contour.centerX) > 5)
 			{
+				// 160 - contour.centerX will be + if target left of center, - if right of center.
+				
 				if (contour.centerX != saveX) bump(160 - (int) contour.centerX);
 
 				saveX = (int) contour.centerX;
@@ -690,6 +723,9 @@ class Teleop
 				case TOP_MIDDLE:
 					shooter.StopShoot();
 					break;
+					
+				case TRIGGER:
+					shooter.turretSetPosition(-2000);
 					
 				default:
 					break;

@@ -24,12 +24,19 @@ public class Shooter
 	private final SpeedController	pickupMotor;
 	private final Talon				shooterMotor1 = new Talon(0);
 	private final Talon				shooterMotor2 = new Talon(1);
+	private final Talon				turretMotor = new Talon(2);
 	private final FestoDA			pickupCylinder = new FestoDA(6);
 	private final FestoDA			hoodCylinder = new FestoDA(4);
 	private final DigitalInput		pickupSwitch = new DigitalInput(0);
+	
+	public final double				TURRET_MAX_POWER = .25;
+	public final int				TURRET_MAX_ROTATE = 2800, TURRET_POS_WINDOW = 10;
 
-	// encoder is plugged into dio port 4 - orange=+5v blue=signal, dio port 5 black=gnd yellow=signal. 
+	// shooter encoder is plugged into dio port 4 - orange=+5v blue=signal, dio port 5 black=gnd yellow=signal. 
 	public Encoder					encoder = new Encoder(4, 5, true, EncodingType.k4X);
+
+	// turret encoder is plugged into dio port 6 - orange=+5v blue=signal, dio port 7 black=gnd yellow=signal. 
+	public Encoder					turretEncoder = new Encoder(6, 7, true, EncodingType.k4X);
 
 	// Competition robot PID defaults. These look like static constants but you must instantiate
 	// this class to set up these items for comp or clone robot before accessing them.
@@ -101,6 +108,7 @@ public class Shooter
 		
 		PickupArmUp();
 		HoodDown();
+		turretEncoder.reset();
 	}
 
 	public void dispose()
@@ -130,8 +138,80 @@ public class Shooter
 		if (hoodCylinder != null) hoodCylinder.dispose();
 		if (pickupSwitch != null) pickupSwitch.free();
 		if (encoder != null) encoder.free();
+		if (turretMotor != null) turretMotor.free();
+		if (turretEncoder != null) turretEncoder.free();
 	}
+	
+	/**
+	 * Rotate turret.
+	 * @param power Power level, - is left, + is right.
+	 */
+	public void rotateTurret(double power)
+	{
+		//Util.consoleLog("%f", power);
 
+		if (Math.abs(power) > TURRET_MAX_POWER) 
+			if (power < 0)
+				power = -TURRET_MAX_POWER;
+			else
+				power = TURRET_MAX_POWER;
+		
+		if (power > 0)
+		{
+			if (turretEncoder.get() >= TURRET_MAX_ROTATE) power = 0;
+		}
+		else
+		{
+			if (turretEncoder.get() <= -TURRET_MAX_ROTATE) power = 0;
+		}
+				
+		// Note that we invert power sign because turret motor is wired
+		// backwards and we did not want to change the wires.
+		
+		turretMotor.set(-power);
+	}
+	//---------------------------------------
+	/**
+	 * Move turret to position as determined by encoder.
+	 * @param pos Target position, - is left of 0, + is right of 0.
+	 */
+	public void turretSetPosition(int pos)
+	{
+		Util.consoleLog("%d", pos);
+		
+		if (Math.abs(pos) >= TURRET_MAX_ROTATE) return;
+		
+		while (robot.isEnabled() && !turretOnTarget(pos))
+		{
+			if (pos < turretEncoder.get())
+				// turn left
+				rotateTurret(-.10);	//-TURRET_MAX_POWER);
+			else
+				// turn right
+				rotateTurret(.10);	//TURRET_MAX_POWER);
+		}
+		
+		rotateTurret(0);
+	}
+	/**
+	 * Determine if the turret is positioned to the target position. Uses the turret target window
+	 * value to create a range of values that are considered a match. This is to prevent the turret
+	 * from chasing an exact match between target and encoder.
+	 * @param pos Target position, - is left of 0, + is right of 0.
+	 * @return True if on target, false if  not.
+	 */
+	private boolean turretOnTarget(int pos)
+	{
+		int	posLeft, posRight;
+		
+		posLeft = pos - TURRET_POS_WINDOW;
+		posRight = pos + TURRET_POS_WINDOW;
+		
+		if (turretEncoder.get() >= posLeft && turretEncoder.get() <= posRight) return true;
+		
+		return false;
+	}
+	//---------------------------------------
 	public void PickupArmUp()
 	{
 		Util.consoleLog();
