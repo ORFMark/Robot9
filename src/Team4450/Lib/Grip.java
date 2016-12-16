@@ -2,6 +2,12 @@ package Team4450.Lib;
 
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
 
+/**
+ * This class manages Grip run in a separate process. 
+ * Starts/Stops that process and obtains Grip contour reports from 
+ * that process via network tables. 
+ */
+
 public final class Grip
 {
 	private static 		 Process		gripProcess = null;

@@ -2,7 +2,7 @@
 package Team4450.Lib;
 
 import Team4450.Robot9.Robot;
-import Team4450.Lib.CameraServer;
+//import Team4450.Lib.CameraServer;
 
 import com.ni.vision.NIVision;
 import com.ni.vision.NIVision.Image;
@@ -158,7 +158,7 @@ public class CameraFeed2 extends Thread
 			currentCamera = cam1;
     }
     
-	 // Get an image from current camera and give it to the server.
+	// Get an image from current camera and give it to the server.
     private void UpdateCameraImage()
     {
     	try

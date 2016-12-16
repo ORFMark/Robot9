@@ -398,9 +398,9 @@ class Teleop
 	/**
 	 * Rotate the robot by bumping appropriate motors based on the X axis offset
 	 * from center of camera image. 
-	 * @param value Target offset. + value means target is left of center so
-	 * run right side motors backwards. - value means target is right of center so run
-	 * left side motors backwards. Currently the magnitude of the offset is not used but
+	 * @param value Target offset from center. + value means target is left of center so
+	 * run right side motors forward. - value means target is right of center so run
+	 * left side motors forward. Currently the magnitude of the offset is not used but
 	 * could be if we upgrade the movement function like using PID or ?
 	 */
 	void bump(int value)
@@ -425,9 +425,9 @@ class Teleop
 	/**
 	 * Rotate the robot by bumping turret motor based on the X axis offset
 	 * from center of camera image. 
-	 * @param value Target offset. + value means target is left of center so
-	 * run right side motors backwards. - value means target is right of center so run
-	 * left side motors backwards. Currently the magnitude of the offset is not used but
+	 * @param value Target offset from center. + value means target is left of center so
+	 * turn turret left. - value means target is right of center so turn turret
+	 * right. Currently the magnitude of the offset is not used but
 	 * could be if we upgrade the movement function like using PID or ?
 	 */
 	void bumpTurret(int value)
@@ -435,9 +435,9 @@ class Teleop
 		Util.consoleLog("%d", value);
 
 		if (value > 0)
-			shooter.rotateTurret(.10);	// + turn leftt.
+			shooter.rotateTurret(-.25);	// +value turn left (minus on rotate).
 		else
-			shooter.rotateTurret(-.10);	// - turn right.
+			shooter.rotateTurret(.25);	// -value turn right (plus on rotate).
 			
 		// larger bump the further off target we are.
 		
@@ -446,7 +446,7 @@ class Teleop
 		else
 			Timer.delay(.10);
 		
-		robot.robotDrive.tankDrive(0, 0);
+		shooter.rotateTurret(0);
 	}
 	
 	/**
@@ -524,7 +524,7 @@ class Teleop
 			{
 				// 160 - contour.centerX will be + if target left of center, - if right of center.
 				
-				if (contour.centerX != saveX) bump(160 - (int) contour.centerX);
+				if (contour.centerX != saveX) bumpTurret(160 - (int) contour.centerX);
 
 				saveX = (int) contour.centerX;
 				
