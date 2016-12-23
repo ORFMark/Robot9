@@ -435,9 +435,9 @@ class Teleop
 		Util.consoleLog("%d", value);
 
 		if (value > 0)
-			shooter.rotateTurret(-.25);	// +value turn left (minus on rotate).
+			shooter.rotateTurret(-.15);	// +value turn left (minus on rotate).
 		else
-			shooter.rotateTurret(.25);	// -value turn right (plus on rotate).
+			shooter.rotateTurret(.15);	// -value turn right (plus on rotate).
 			
 		// larger bump the further off target we are.
 		
@@ -450,6 +450,44 @@ class Teleop
 	}
 	
 	/**
+	 * Rotate the robot by setting turret motor position based on the X axis offset
+	 * from center of camera image. Position is specific from turret zero position.
+	 * @param value Target offset from center. + value means target is left of center so
+	 * turn turret left. - value means target is right of center so turn turret
+	 * right.
+	 */
+	void bumpTurret2(int value)
+	{
+		Util.consoleLog("%d", value);
+
+		value = shooter.pixelsToCounts(value, 0);
+		
+		if (value > 0)
+			shooter.turretSetPosition(-value);	// +value turn left (minus on setpos).
+		else
+			shooter.turretSetPosition(value);	// -value turn right (plus on setpos).
+	}
+	
+	/**
+	 * Rotate the robot by setting turret motor position based on the X axis offset
+	 * from center of camera image. Position is relative to turret current position.
+	 * @param value Target offset from center. + value means target is left of center so
+	 * turn turret left. - value means target is right of center so turn turret
+	 * right.
+	 */
+	void bumpTurret3(int value)
+	{
+		Util.consoleLog("%d", value);
+
+		value = shooter.pixelsToCounts(value, 0);
+		
+		if (value > 0)
+			shooter.turretSetPositionRelative(-value);	// +value turn left (minus on setpos).
+		else
+			shooter.turretSetPositionRelative(value);	// -value turn right (plus on setpos).
+	}
+	
+	/**
 	 * Loops checking camera images for target. Stops when no target found.
 	 * If target found, check target X location and if needed bump the bot
 	 * in the appropriate direction and then check target location again.
@@ -457,7 +495,8 @@ class Teleop
 	 */
 	void seekTarget()
 	{
-		Vision2016.ParticleReport par;
+		Vision2016.ParticleReport 	par;
+		int							targetOffset;
 		
 		Util.consoleLog();
 
@@ -471,11 +510,19 @@ class Teleop
 		
 		while (robot.isEnabled() && autoTarget && par != null)
 		{
-			if (Math.abs(320 - par.CenterX) > 5)
+			// Image is 640 pixels wide. 5px target zone.
+			// targetOffset is number of pixels from center of image to the center
+			// of the target in the image. A particle report is information about the location
+			// of the target in the image. centerX is target center offset from the left
+			// edge of the image, ie. zero.
+			
+			targetOffset = 320 - par.CenterX;
+			
+			if (Math.abs(targetOffset) > 5)
 			{
 				// 320 - par.centerX will be + if target left of center, - if right of center.
 				
-				bump(320 - par.CenterX);
+				bump(targetOffset);
 				
 				par = vision.CheckForTarget(robot.cameraThread.CurrentImage());
 			}
@@ -488,7 +535,6 @@ class Teleop
 		
 		autoTarget = false;
 		robot.robotDrive.setSafetyEnabled(true);
-
 		SmartDashboard.putBoolean("AutoTarget", false);
 	}
 
@@ -496,11 +542,12 @@ class Teleop
 	 * Loops checking camera images for target. Stops when no target found.
 	 * If target found, check target X location and if needed bump the bot
 	 * in the appropriate direction and then check target location again.
-	 * Uses GRIP based vision code.
+	 * Uses GRIP based vision code running as a standalone program either
+	 * on the RoboRio or Raspberry Pi or a PC.
 	 */
 	void seekTargetGrip()
 	{
-		int				saveX = 0;
+		int				targetOffset, imageCenter = Grip.IMAGE_WIDTH / 2;
 		Grip.Contour	contour;
 		
 		Util.consoleLog();
@@ -520,19 +567,25 @@ class Teleop
 		{
 			Util.consoleLog(contour.toString());
 
-			if (Math.abs(160 - (int) contour.centerX) > 5)
+			// Image is Grip.IMAGE_WIDTH pixels wide. 5px target zone.
+			// targetOffset is number of pixels from center of image to the center
+			// of the target in the image. A countour is information about the location
+			// of the target in the image. centerX is target center offset from the left
+			// edge of the image, ie. zero.
+			
+			targetOffset = imageCenter - (int) contour.centerX;
+					
+			if (Math.abs(targetOffset) > 5)
 			{
-				// 160 - contour.centerX will be + if target left of center, - if right of center.
-				
-				if (contour.centerX != saveX) bumpTurret(160 - (int) contour.centerX);
+				// targetOffset will be + if target left of center, - if right of center.
 
-				saveX = (int) contour.centerX;
+				bumpTurret3(targetOffset);
 				
 				// Wait for Grip to process an image after bump movement stops.
 				// Grip takes about .75sec to process an image and return data.
 				
 				//Timer.delay(.10);	// Grip running on Sean's Surface.
-				Timer.delay(.75);	// Grip running on Raspberry Pi.
+				Timer.delay(.25);	// Grip running on Raspberry Pi.
 				
 				contour = Grip.getContoursReport().getContour(0);
 			}

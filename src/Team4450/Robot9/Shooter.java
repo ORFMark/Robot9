@@ -143,7 +143,8 @@ public class Shooter
 	}
 	
 	/**
-	 * Rotate turret.
+	 * Rotate turret. Starts turret motor. Call again with power = 0 
+	 * to stop motor.
 	 * @param power Power level, - is left, + is right.
 	 */
 	public void rotateTurret(double power)
@@ -170,9 +171,10 @@ public class Shooter
 		
 		turretMotor.set(-power);
 	}
+	
 	//---------------------------------------
 	/**
-	 * Move turret to position as determined by encoder.
+	 * Move turret to specific position as determined by encoder.
 	 * @param pos Target position, - is left of 0, + is right of 0.
 	 */
 	public void turretSetPosition(int pos)
@@ -185,14 +187,45 @@ public class Shooter
 		{
 			if (pos < turretEncoder.get())
 				// turn left
-				rotateTurret(-.10);	//-TURRET_MAX_POWER);
+				rotateTurret(-.10);
 			else
 				// turn right
-				rotateTurret(.10);	//TURRET_MAX_POWER);
+				rotateTurret(.10);	
 		}
 		
 		rotateTurret(0);
 	}
+	
+	//---------------------------------------
+	/**
+	 * Move turret to specific position relative to current position.
+	 * @param offset Encoder counts to move relative to current position, 
+	 * - is left of 0, + is right of 0.
+	 */
+	public void turretSetPositionRelative(int offset)
+	{
+		int pos;
+		
+		Util.consoleLog("%d", offset);
+		
+		pos = turretEncoder.get() + offset;
+		
+		if (Math.abs(pos) >= TURRET_MAX_ROTATE) return;
+		
+		while (robot.isEnabled() && !turretOnTarget(pos))
+		{
+			if (pos < turretEncoder.get())
+				// turn left
+				rotateTurret(-.10);
+			else
+				// turn right
+				rotateTurret(.10);
+		}
+		
+		rotateTurret(0);
+	}
+	
+	//---------------------------------------
 	/**
 	 * Determine if the turret is positioned to the target position. Uses the turret target window
 	 * value to create a range of values that are considered a match. This is to prevent the turret
@@ -211,6 +244,19 @@ public class Shooter
 		
 		return false;
 	}
+	
+	//---------------------------------------
+	/**
+	 * Convert pixels from camera image to turret encoder counts.
+	 * @param pixels Pixel value to convert.
+	 * @param range Range to target in (unit). Not used at this time.
+	 * @return Encoder counts matching pixel value.
+	 */
+	public int pixelsToCounts(int pixels, int range)
+	{
+		return (int) (pixels * 5.625);
+	}
+	
 	//---------------------------------------
 	public void PickupArmUp()
 	{
@@ -218,6 +264,7 @@ public class Shooter
 		
 		pickupCylinder.SetA();
 	}
+	
 	//---------------------------------------
 	public void PickupArmDown()
 	{
@@ -225,6 +272,7 @@ public class Shooter
 		
 		pickupCylinder.SetB();
 	}
+	
 	//---------------------------------------
 	public void HoodDown()
 	{
@@ -232,6 +280,7 @@ public class Shooter
 		
 		hoodCylinder.SetB();
 	}
+	
 	//----------------------------------------
 	public void HoodUp()
 	{
@@ -239,6 +288,7 @@ public class Shooter
 		
 		hoodCylinder.SetA();
 	}
+	
 	//----------------------------------------
 	/**
 	 * Starts pickup motor in intake direction.
@@ -250,6 +300,7 @@ public class Shooter
 
 		pickupMotor.set(power);
 	}
+	
 	//----------------------------------------
 	/**
 	 * Starts pickup motor in output direction.
@@ -262,6 +313,7 @@ public class Shooter
 		pickupMotor.set(Math.abs(power) * -1);
 		SmartDashboard.putBoolean("PickupMotor", true);
 	}
+	
 	//----------------------------------------
 	/**
 	 * Stop pickup motor.
@@ -274,6 +326,7 @@ public class Shooter
 		if (teleop != null) teleop.launchPad.FindButton(LaunchPadControlIDs.BUTTON_RED_RIGHT).latchedState = false;
 		SmartDashboard.putBoolean("PickupMotor", false);
 	}
+	
 	//----------------------------------------
 	/**
 	 * Start shooter motors.
@@ -307,6 +360,7 @@ public class Shooter
 			
 		SmartDashboard.putBoolean("ShooterMotor", true);
 	}
+	
 	//----------------------------------------
 	/**
 	 * Stops shooter motors.
@@ -322,6 +376,7 @@ public class Shooter
 		if (teleop != null) teleop.utilityStick.FindButton(JoyStickButtonIDs.TOP_LEFT).latchedState = false;
 		SmartDashboard.putBoolean("ShooterMotor", false);
 	}
+	
 	//----------------------------------------
 	/**
 	 * Start auto pickup thread.
@@ -335,6 +390,7 @@ public class Shooter
 		autoPickupThread = new AutoPickup();
 		autoPickupThread.start();
 	}
+	
 	//----------------------------------------
 	/**
 	 * Stops auto pickup thread.
@@ -400,6 +456,7 @@ public class Shooter
 		autoSpitBallThread = new AutoSpitBall();
 		autoSpitBallThread.start();
 	}
+	
 	//----------------------------------------
 	/**
 	 * Stops auto ball spitting thread.
@@ -412,9 +469,9 @@ public class Shooter
 		
 		autoSpitBallThread = null;
 	}
+	
 	//----------------------------------------
 	// Automatic ball spitting thread.
-	
 	private class AutoSpitBall extends Thread
 	{
 		AutoSpitBall()
@@ -462,6 +519,7 @@ public class Shooter
 		shootThread = new Shoot(spinUpMotors, power);
 		shootThread.start();
 	}
+	
 	//----------------------------------------
 	/**
 	 * Stop auto shoot thread.
@@ -542,7 +600,7 @@ public class Shooter
 	 * manage motor power to maintain rpm target.
 	 * @param rpm RPM to hold.
 	 */
-	void holdShooterRPM(double rpm)
+	private void holdShooterRPM(double rpm)
 	{
 		double pValue = SmartDashboard.getNumber("PValue", PVALUE);
 		double iValue = SmartDashboard.getNumber("IValue", IVALUE);
