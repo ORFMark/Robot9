@@ -200,7 +200,7 @@ public class Shooter
 	/**
 	 * Move turret to specific position relative to current position.
 	 * @param offset Encoder counts to move relative to current position, 
-	 * - is left of 0, + is right of 0.
+	 * - is left, + is right.
 	 */
 	public void turretSetPositionRelative(int offset)
 	{

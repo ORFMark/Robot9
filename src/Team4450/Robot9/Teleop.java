@@ -424,11 +424,11 @@ class Teleop
 	
 	/**
 	 * Rotate the robot by bumping turret motor based on the X axis offset
-	 * from center of camera image. 
+	 * from center of camera image. Iteratively finds center of target. 
 	 * @param value Target offset from center. + value means target is left of center so
 	 * turn turret left. - value means target is right of center so turn turret
-	 * right. Currently the magnitude of the offset is not used but
-	 * could be if we upgrade the movement function like using PID or ?
+	 * right. Currently the magnitude of the offset is used to control how long we run
+	 * the motors for a bump.  Motors are run at a fixed power.
 	 */
 	void bumpTurret(int value)
 	{
@@ -439,7 +439,7 @@ class Teleop
 		else
 			shooter.rotateTurret(.15);	// -value turn right (plus on rotate).
 			
-		// larger bump the further off target we are.
+		// longer bump the further off target we are.
 		
 		if (Math.abs(value) < 100)
 			Timer.delay(.05);
@@ -451,7 +451,8 @@ class Teleop
 	
 	/**
 	 * Rotate the robot by setting turret motor position based on the X axis offset
-	 * from center of camera image. Position is specific from turret zero position.
+	 * from center of camera image. Position is relative to turret current position.
+	 * When tuned correctly, should line up on target with or two turrent moves.
 	 * @param value Target offset from center. + value means target is left of center so
 	 * turn turret left. - value means target is right of center so turn turret
 	 * right.
@@ -462,29 +463,9 @@ class Teleop
 
 		value = shooter.pixelsToCounts(value, 0);
 		
-		if (value > 0)
-			shooter.turretSetPosition(-value);	// +value turn left (minus on setpos).
-		else
-			shooter.turretSetPosition(value);	// -value turn right (plus on setpos).
-	}
-	
-	/**
-	 * Rotate the robot by setting turret motor position based on the X axis offset
-	 * from center of camera image. Position is relative to turret current position.
-	 * @param value Target offset from center. + value means target is left of center so
-	 * turn turret left. - value means target is right of center so turn turret
-	 * right.
-	 */
-	void bumpTurret3(int value)
-	{
-		Util.consoleLog("%d", value);
-
-		value = shooter.pixelsToCounts(value, 0);
+		// Invert value since setpositionrelative uses opposite sign for direction.
 		
-		if (value > 0)
-			shooter.turretSetPositionRelative(-value);	// +value turn left (minus on setpos).
-		else
-			shooter.turretSetPositionRelative(value);	// -value turn right (plus on setpos).
+		shooter.turretSetPositionRelative(-value);
 	}
 	
 	/**
@@ -549,6 +530,15 @@ class Teleop
 	{
 		int				targetOffset, imageCenter = Grip.IMAGE_WIDTH / 2;
 		Grip.Contour	contour;
+
+		// Since the turret camera is incorrectly mounted and points a bit left of 
+		// turrent centerline, when we line up the target with the camera centerline
+		// the turret is actually pointing right of the target. So we use this value
+		// to adjust the turret position to correct this problem. Note that this will
+		// make the DS camera centerline to be left of center when we are lined up.
+		// This is number of pixels to tweak the location of the target centerline.
+		// + value adjusts turret right, - value adjusts left.
+		final int		CAMERA_ADJUST = 0;
 		
 		Util.consoleLog();
 		
@@ -573,19 +563,20 @@ class Teleop
 			// of the target in the image. centerX is target center offset from the left
 			// edge of the image, ie. zero.
 			
-			targetOffset = imageCenter - (int) contour.centerX;
+			targetOffset = imageCenter - ((int) contour.centerX + CAMERA_ADJUST);
 					
 			if (Math.abs(targetOffset) > 5)
 			{
 				// targetOffset will be + if target left of center, - if right of center.
 
-				bumpTurret3(targetOffset);
+				bumpTurret2(targetOffset);
 				
 				// Wait for Grip to process an image after bump movement stops.
-				// Grip takes about .75sec to process an image and return data.
+				// Grip takes about .50-.75sec to process an image and return data.
+				// Grip development environment will tell you how much time it takes
+				// to process an image on the development PC.
 				
-				//Timer.delay(.10);	// Grip running on Sean's Surface.
-				Timer.delay(.25);	// Grip running on Raspberry Pi.
+				Timer.delay(.50);	
 				
 				contour = Grip.getContoursReport().getContour(0);
 			}
