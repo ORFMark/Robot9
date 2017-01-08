@@ -29,7 +29,7 @@ public class Shooter
 	private final FestoDA			hoodCylinder = new FestoDA(4);
 	private final DigitalInput		pickupSwitch = new DigitalInput(0);
 	
-	public final double				TURRET_MAX_POWER = .25;
+	public final double				TURRET_MAX_POWER = .20;
 	public final int				TURRET_MAX_ROTATE = 2800, TURRET_POS_WINDOW = 10;
 
 	// shooter encoder is plugged into dio port 4 - orange=+5v blue=signal, dio port 5 black=gnd yellow=signal. 

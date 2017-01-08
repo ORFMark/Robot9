@@ -138,6 +138,9 @@ class Teleop
 		utilityStick.AddButton(JoyStickButtonIDs.TRIGGER);
         utilityStick.addJoyStickEventListener(new UtilityStickListener());
         utilityStick.Start();
+        
+        // Tighten up dead zone for smoother turrent movement.
+        utilityStick.deadZone = .05;
 
 		// Set CAN Talon brake mode by rocker switch setting.
         // We do this here so that the Utility stick thread has time to read the initial state

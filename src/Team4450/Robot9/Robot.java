@@ -30,7 +30,7 @@ import edu.wpi.first.wpilibj.Talon;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "RAC9-01.05.17-01";
+  static final String  	PROGRAM_NAME = "RAC9-01.07.17-01";
 
   // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
@@ -216,8 +216,8 @@ public class Robot extends SampleRobot
    		// feeding images to Grip and Grip provides an MJpeg image stream to the DS.
    		// If we run Grip on Seans surface, we use his IP for the MJpeg stream.
       
-   		cameraThread = CameraFeed2.getInstance(this); 
-   		cameraThread.start();
+   		//cameraThread = CameraFeed2.getInstance(this); 
+   		//cameraThread.start();
 
    		// Start Grip and suspend it when running it on the RoboRio.
         //Grip.suspendGrip(true)
