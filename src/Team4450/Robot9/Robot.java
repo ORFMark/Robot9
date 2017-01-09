@@ -1,6 +1,6 @@
 // 2016 competition robot code.
-// Cleaned up and reorganized in preparation for 2016.
 // For Robot "USS Kelvin" built for FRC game "First Stronghold".
+// Updated to 2017 WpiLib during prep for 2017 season.
 
 package Team4450.Robot9;
 
@@ -8,18 +8,19 @@ import java.io.IOException;
 import java.util.Properties;
 
 import Team4450.Lib.*;
+
 import edu.wpi.first.wpilibj.AnalogGyro;
+import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.SampleRobot;
-import edu.wpi.first.wpilibj.CameraServer;
-import edu.wpi.first.wpilibj.CANTalon.TalonControlMode;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
-import edu.wpi.first.wpilibj.CANTalon;
 import edu.wpi.first.wpilibj.Talon;
+import com.ctre.*;
+import com.ctre.CANTalon.*;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -30,7 +31,7 @@ import edu.wpi.first.wpilibj.Talon;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "RAC9-01.07.17-01";
+  static final String  	PROGRAM_NAME = "RAC9-01.09.17-01";
 
   // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
@@ -51,8 +52,6 @@ public class Robot extends SampleRobot
   public boolean		isClone = false, isComp = false;
   
   PowerDistributionPanel PDP = new PowerDistributionPanel();
-  
-  CameraServer2			usbCameraServer = null;
 
   DriverStation         ds = null;
     	
@@ -60,7 +59,7 @@ public class Robot extends SampleRobot
   int                       location;
     
   Thread               	monitorBatteryThread, monitorDistanceThread, monitorCompressorThread;
-  CameraFeed2			cameraThread;
+  CameraFeed			cameraThread;
     
   // IP addresses of systems hosting robot camera MJpeg stream.
   
@@ -176,7 +175,7 @@ public class Robot extends SampleRobot
         robotDrive.setInvertedMotor(RobotDrive.MotorType.kFrontRight, true);
         robotDrive.setInvertedMotor(RobotDrive.MotorType.kRearRight, true);
      
-        // calibrate the gyro.
+        // calibrate the gyro if used.
         
 //        gyro.initGyro();
 //        gyro.setSensitivity(.007);	// Analog Devices model ADSR-S652.
@@ -199,7 +198,9 @@ public class Robot extends SampleRobot
    		// cameraFeed class. The function below is the standard WpiLib server which
    		// can be used for a single usb camera.
       
-   		//StartUSBCameraServer("cam0");
+   		Util.listCameras();
+   		
+   		StartUSBCameraServer("cam0", 0);
       
    		// Start the battery, compressor, camera feed and distance monitoring Tasks.
 
@@ -216,7 +217,7 @@ public class Robot extends SampleRobot
    		// feeding images to Grip and Grip provides an MJpeg image stream to the DS.
    		// If we run Grip on Seans surface, we use his IP for the MJpeg stream.
       
-   		//cameraThread = CameraFeed2.getInstance(this); 
+   		//cameraThread = CameraFeed.getInstance(this, isComp); 
    		//cameraThread.start();
 
    		// Start Grip and suspend it when running it on the RoboRio.
@@ -352,13 +353,11 @@ public class Robot extends SampleRobot
 
   // Start usb camera server for single camera.
   
-  public void StartUSBCameraServer(String cameraName)
+  public void StartUSBCameraServer(String cameraName, int device)
   {
-	  Util.consoleLog(cameraName);
+	  Util.consoleLog("%s:%d", cameraName, device);
 
-	  usbCameraServer = CameraServer2.getInstance();
-      usbCameraServer.setQuality(30);
-      usbCameraServer.startAutomaticCapture(cameraName);
+      CameraServer.getInstance().startAutomaticCapture(cameraName, device);
   }
 
   // Create RobotDrive object for CAN Talon controllers.

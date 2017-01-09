@@ -34,8 +34,6 @@ class Teleop
 	//private final AnalogInput	hallEffectSensorAnalog = new AnalogInput(3);
 	private final DigitalInput	climbUpSwitch = new DigitalInput(3);
 
-	private Vision2016			vision = new Vision2016();
-
 	// Wheel encoder is plugged into dio port 1 - orange=+5v blue=signal, dio port 2 black=gnd yellow=signal. 
 	private Encoder				encoder = new Encoder(1, 2, true, EncodingType.k4X);
 
@@ -469,58 +467,7 @@ class Teleop
 		// Invert value since setpositionrelative uses opposite sign for direction.
 		
 		shooter.turretSetPositionRelative(-value);
-	}
-	
-	/**
-	 * Loops checking camera images for target. Stops when no target found.
-	 * If target found, check target X location and if needed bump the bot
-	 * in the appropriate direction and then check target location again.
-	 * Uses Vision2016 NI vision library based vision code.
-	 */
-	void seekTarget()
-	{
-		Vision2016.ParticleReport 	par;
-		int							targetOffset;
-		
-		Util.consoleLog();
-
-		SmartDashboard.putBoolean("TargetLocked", false);
-		SmartDashboard.putBoolean("AutoTarget", true);
-
-		par = vision.CheckForTarget(robot.cameraThread.CurrentImage());
-
-		autoTarget = true;
-		robot.robotDrive.setSafetyEnabled(false);
-		
-		while (robot.isEnabled() && autoTarget && par != null)
-		{
-			// Image is 640 pixels wide. 5px target zone.
-			// targetOffset is number of pixels from center of image to the center
-			// of the target in the image. A particle report is information about the location
-			// of the target in the image. centerX is target center offset from the left
-			// edge of the image, ie. zero.
-			
-			targetOffset = 320 - par.CenterX;
-			
-			if (Math.abs(targetOffset) > 5)
-			{
-				// 320 - par.centerX will be + if target left of center, - if right of center.
-				
-				bump(targetOffset);
-				
-				par = vision.CheckForTarget(robot.cameraThread.CurrentImage());
-			}
-			else
-			{
-				SmartDashboard.putBoolean("TargetLocked", true);
-				par = null;
-			}
-		}
-		
-		autoTarget = false;
-		robot.robotDrive.setSafetyEnabled(true);
-		SmartDashboard.putBoolean("AutoTarget", false);
-	}
+	}	
 
 	/**
 	 * Loops checking camera images for target. Stops when no target found.

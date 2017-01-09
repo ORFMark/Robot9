@@ -1,11 +1,9 @@
 
 package Team4450.Lib;
 
-import Team4450.Robot9.Robot;
+import org.opencv.core.Mat;
 
-import com.ni.vision.NIVision;
-import com.ni.vision.NIVision.Image;
-
+import edu.wpi.cscore.CvSource;
 import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Timer;
 
@@ -13,33 +11,34 @@ import edu.wpi.first.wpilibj.Timer;
  * USB camera feed task. Runs as a thread separate from Robot class.
  * Manages one or more usb cameras feeding their images to the 
  * CameraServer class to send to the DS.
- * Uses NI image library to access cameras directly.
+ * We create one or more usb of our camera objects and start them capturing
+ * images. We then loop on a thread getting the current image from
+ * the currently selected camera and pass the image to the camera
+ * server which passes the image to the driver station.
  */
 
 public class CameraFeed extends Thread
 {
-	public	int		 			cam1 = -1, cam2 = -1;
 	public	double				frameRate = 30;		// frames per second
-	private int 				currentCamera;
-	private Image 				frame;
+	private Camera				currentCamera, cam1, cam2;
+	private Mat 				image;
 	private CameraServer 		server;
-	private boolean				cameraChangeInProgress;
-	private Robot				robot;
 	private static CameraFeed	cameraFeed;
-
+	private boolean				isCompetitionRobot;
+	private CvSource			imageOutputStream;
+	
 	// Create single instance of this class and return that single instance to any callers.
 	
 	/**
-	 * Get a reference to global CameraFeed object.
-	 * @param robot Robot class instance.
-	 * @return Reference to global CameraFeed object.
+	 * Get a reference to global CameraFeed2 object.
+	 * @return Reference to global CameraFeed2 object.
 	 */
 	  
-	public static CameraFeed getInstance(Robot robot) 
+	public static CameraFeed getInstance(boolean isCompetitionRobot) 
 	{
 		Util.consoleLog();
 		
-		if (cameraFeed == null) cameraFeed = new CameraFeed(robot);
+		if (cameraFeed == null) cameraFeed = new CameraFeed(isCompetitionRobot);
 	    
 	    return cameraFeed;
 	}
@@ -47,63 +46,49 @@ public class CameraFeed extends Thread
 	// Private constructor means callers must use getInstance.
 	// This is the singleton class model.
 	
-	private CameraFeed(Robot robot)
+	private CameraFeed(boolean isCompetitionRobot)
 	{
 		try
 		{
     		Util.consoleLog();
     
-    		this.setName("CameraFeed");
+    		this.setName("CameraFeed2");
     		
-    		this.robot = robot;
+    		this.isCompetitionRobot = isCompetitionRobot;
     		
-    		// Get camera ids by supplying camera name ex 'cam0', found on roborio web interface.
-    		// This code sets up first two cameras found using all the camera names known on our
-    		// 2 RoboRios.
-    		
-    		// Camera initialization based on robotid from properties file.
-    		
-    		if (robot.isComp)
-    		{
-        		try
-        		{
-        			cam1 = NIVision.IMAQdxOpenCamera("cam1", NIVision.IMAQdxCameraControlMode.CameraControlModeController);
-        		}
-        		catch (Exception e) {}
-        		
-        		try
-        		{
-        			cam2 = NIVision.IMAQdxOpenCamera("cam0", NIVision.IMAQdxCameraControlMode.CameraControlModeController);
-        		}
-        		catch (Exception e) {}
-    		}
-    		
-    		if (robot.isClone)
-    		{
-    			Util.consoleLog("in clone");
-    			
-        		try
-        		{
-        			cam1 = NIVision.IMAQdxOpenCamera("cam0", NIVision.IMAQdxCameraControlMode.CameraControlModeController);
-        		}
-        		catch (Exception e) {}
-    		}
-    		
-    		// trace the camera ids.
-    		
-    		Util.consoleLog("cam1=%d, cam2=%d", cam1, cam2);
-            
-            // Frame that will contain camera image.
-            frame = NIVision.imaqCreateImage(NIVision.ImageType.IMAGE_RGB, 0);
-            
-            // Server that we'll give the image to.
+            // camera Server that we'll give the images to.
             server = CameraServer.getInstance();
-            server.setQuality(50);
-    
-            // Set starting camera.
-            currentCamera = cam1;
+
+            // Create output image stream.
             
-            ChangeCamera(currentCamera);
+            imageOutputStream = server.putVideo("4450", 640, 480);
+            
+            // Create cameras.
+            // Using one camera at this time.
+
+            if (isCompetitionRobot)
+    			cam1 = new Camera("cam1", 1, server);
+    		else
+    			cam1 = new Camera("cam0", 0, server);
+    			
+            cam2 = cam1;
+            
+            // Open cameras when using 2 cameras.
+            
+//            if (isCompetitionRobot)
+//            {
+//    			cam1 = new UsbCamera("cam1", 1, server);
+//    			cam2 = new UsbCamera("cam0", 0, server);
+//            }
+//            else
+//            {
+//            	cam1 = new UsbCamera("cam0", 0, server);
+//    			cam2 = new UsbCamera("cam1", 1, server);
+//            }
+            
+            // Set starting camera.
+
+            currentCamera = cam1;
 		}
 		catch (Throwable e) {Util.logException(e);}
 	}
@@ -111,13 +96,15 @@ public class CameraFeed extends Thread
 	// Run thread to read and feed camera images. Called by Thread.start().
 	public void run()
 	{
+		Util.consoleLog();
+		
 		try
 		{
 			Util.consoleLog();
 
-			while (true)
+			while (!isInterrupted())
 			{
-				if (!cameraChangeInProgress) UpdateCameraImage();
+				UpdateCameraImage();
 		
 				Timer.delay(1 / frameRate);
 			}
@@ -127,66 +114,64 @@ public class CameraFeed extends Thread
 	
 	/**
 	 * Get last image read from camera.
-	 * @return Image Last image from camera.
+	 * @return Mat Last image from camera.
 	 */
-	public Image CurrentImage()
+	public Mat CurrentImage()
 	{
 		Util.consoleLog();
 		
-		return frame;
+		return image;
 	}
 	
 	/**
-	 * Stop feed, ie close camera stream.
+	 * Stop image feed, ie close camera stream stop feed thread.
 	 */
 	public void EndFeed()
 	{
 		try
 		{
     		Util.consoleLog();
-    
-    		if (currentCamera != -1) NIVision.IMAQdxStopAcquisition(currentCamera);
+
+    		Thread.currentThread().interrupt();
+    		
+    		cam1.stopCapture();
+    		cam1.free();
+    		//cam2.stopCapture();
+    		//cam2.free();
+    		
+    		currentCamera = cam1 = cam2 =  null;
+    		server = null;
 		}
 		catch (Throwable e)	{Util.logException(e);}
 	}
 	
 	/**
-	 * Change the camera to get images from to a different one 
-	 * @param newId Camera number to change to. Use cam1 or cam2.
+	 * Change the camera to get images from the other camera. 
 	 */
-	public void ChangeCamera(int newId)
+	public void ChangeCamera()
     {
-		Util.consoleLog("newid=%d", newId);
-		
-		if (newId == -1) return;
-		
-		try
-		{
-    		cameraChangeInProgress = true;
+		Util.consoleLog();
 
-    		NIVision.IMAQdxStopAcquisition(currentCamera);
-    		
-        	NIVision.IMAQdxConfigureGrab(newId);
-        	
-        	NIVision.IMAQdxStartAcquisition(newId);
-        	
-        	currentCamera = newId;
-        	
-        	cameraChangeInProgress = false;
-		}
-		catch (Throwable e)	{Util.logException(e);}
+		currentCamera.stopCapture();
+		
+		if (currentCamera.equals(cam1))
+			currentCamera = cam2;
+		else
+			currentCamera = cam1;
+		
+		currentCamera.startCapture();
     }
     
-	 // Get an image from current camera and give it to the server.
+	// Get an image from current camera and give it to the server.
     private void UpdateCameraImage()
     {
     	try
     	{
-    		if (currentCamera != -1)
+    		if (currentCamera != null)
     		{	
-            	NIVision.IMAQdxGrab(currentCamera, frame, 1);
-                
-            	server.setImage(frame);
+    			image = currentCamera.getImage();
+    				
+            	imageOutputStream.putFrame(image);
     		}
 		}
 		catch (Throwable e) {Util.logException(e);}

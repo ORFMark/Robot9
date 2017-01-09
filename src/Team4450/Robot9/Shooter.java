@@ -3,7 +3,7 @@ package Team4450.Robot9;
 import Team4450.Lib.*;
 import Team4450.Lib.JoyStick.JoyStickButtonIDs;
 import Team4450.Lib.LaunchPad.LaunchPadControlIDs;
-import edu.wpi.first.wpilibj.CANTalon;
+
 import edu.wpi.first.wpilibj.Counter;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.PIDController;
@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import com.ctre.*;
 
 public class Shooter
 {
@@ -637,12 +638,6 @@ public class Shooter
 		public double get()
 		{
 			return shooterMotor1.get();
-		}
-
-		@Override
-		public void set(double speed, byte syncGroup)
-		{
-			this.set(speed);
 		}
 
 		@Override
