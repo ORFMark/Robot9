@@ -556,10 +556,11 @@ class Teleop
 			switch(control.id)
 			{
 				case BUTTON_YELLOW:
-    				if (launchPadEvent.control.latchedState)
-    					shooter.HoodUp();
-    				else
-    					shooter.HoodDown();
+					robot.cameraThread.ChangeCamera();
+//    				if (launchPadEvent.control.latchedState)
+//    					shooter.HoodUp();
+//    				else
+//    					shooter.HoodDown();
 
     				break;
     				

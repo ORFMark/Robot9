@@ -3,7 +3,11 @@ package Team4450.Lib;
 
 import org.opencv.core.Mat;
 
+import edu.wpi.cscore.CvSink;
 import edu.wpi.cscore.CvSource;
+import edu.wpi.cscore.MjpegServer;
+import edu.wpi.cscore.UsbCamera;
+import edu.wpi.cscore.VideoMode;
 import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Timer;
 
@@ -19,19 +23,30 @@ import edu.wpi.first.wpilibj.Timer;
 
 public class CameraFeed extends Thread
 {
-	public	double				frameRate = 30;		// frames per second
-	private Camera				currentCamera, cam1, cam2;
-	private Mat 				image;
-	private CameraServer 		server;
+	private UsbCamera			currentCamera, cam1, cam2;
+	private Mat 				image = new Mat();
 	private static CameraFeed	cameraFeed;
-	private boolean				isCompetitionRobot;
+	private boolean				isCompetitionRobot, initialized;
+	private MjpegServer			mjpegServer;
+	private CvSink				imageSource;
 	private CvSource			imageOutputStream;
-	
+	private boolean				changingCamera;
+
+	// Camera settings - Static
+	public static final int 	width = 640;
+	public static final int 	height = 480;
+	//public static final double 	fovH = 48.0;
+	//public static final double 	fovV = 32.0;
+	public static final	double	frameRate = 20;		// frames per second
+	public static final int		whitebalance = 4700;	// Color temperature in K, -1 is auto
+	public static final int		brightness = 50;		// 0 - 100, -1 is "do not set"
+	public static final int		exposure = 50;		// 0 - 100, -1 is "auto"
+
 	// Create single instance of this class and return that single instance to any callers.
 	
 	/**
-	 * Get a reference to global CameraFeed2 object.
-	 * @return Reference to global CameraFeed2 object.
+	 * Get a reference to global CameraFeed object.
+	 * @return Reference to global CameraFeed object.
 	 */
 	  
 	public static CameraFeed getInstance(boolean isCompetitionRobot) 
@@ -55,48 +70,85 @@ public class CameraFeed extends Thread
     		this.setName("CameraFeed2");
     		
     		this.isCompetitionRobot = isCompetitionRobot;
-    		
-            // camera Server that we'll give the images to.
-            server = CameraServer.getInstance();
 
+            // Create Mjpeg stream server.
+            
+            mjpegServer = CameraServer.getInstance().addServer("4450-mjpegServer", 1181);
+
+            // Create image source.
+            
+            imageSource = new CvSink("4450-CvSink");
+            
             // Create output image stream.
             
-            imageOutputStream = server.putVideo("4450", 640, 480);
+            imageOutputStream = new CvSource("4450-CvSource", VideoMode.PixelFormat.kMJPEG, width, height, (int) frameRate);
+            
+            mjpegServer.setSource(imageOutputStream);
             
             // Create cameras.
             // Using one camera at this time.
+            // You have to look at the RoboRio web page to see what
+            // number the camera 1s assigned to. The name here is
+            // whatever you would like it to be.
 
-            if (isCompetitionRobot)
-    			cam1 = new Camera("cam1", 1, server);
-    		else
-    			cam1 = new Camera("cam0", 0, server);
-    			
-            cam2 = cam1;
+//            if (this.isCompetitionRobot)
+//    			cam1 = new UsbCamera("cam0", 0);
+//    		else
+//    			cam1 = new UsbCamera("cam0", 0);
+//    			
+//            updateCameraSettings(cam1);
+//            
+//            cam2 = cam1;
             
             // Open cameras when using 2 cameras.
+            // You have to look at the RoboRio web page to see what
+            // numbers the cameras are assigned to. The name here is
+            // whatever you would like it to be.
             
-//            if (isCompetitionRobot)
-//            {
-//    			cam1 = new UsbCamera("cam1", 1, server);
-//    			cam2 = new UsbCamera("cam0", 0, server);
-//            }
-//            else
-//            {
-//            	cam1 = new UsbCamera("cam0", 0, server);
-//    			cam2 = new UsbCamera("cam1", 1, server);
-//            }
+            if (this.isCompetitionRobot)
+            {
+    			cam1 = new UsbCamera("cam0", 0);
+    			cam2 = new UsbCamera("cam1", 1);
+            }
+            else
+            {
+            	cam1 = new UsbCamera("cam0", 0);
+    			cam2 = new UsbCamera("cam1", 1);
+            }
+
+            updateCameraSettings(cam1);
+            updateCameraSettings(cam2);
+            
+            initialized = true;
             
             // Set starting camera.
 
-            currentCamera = cam1;
+            ChangeCamera();
 		}
 		catch (Throwable e) {Util.logException(e);}
 	}
 	
+	/**
+	 * Update camera with current settings fields values.
+	 */
+	public void updateCameraSettings(UsbCamera camera) 
+	{
+		Util.consoleLog();
+
+		camera.setResolution(width, height);
+		camera.setFPS((int) frameRate);
+		camera.setExposureManual(exposure);
+		camera.setWhiteBalanceManual(whitebalance);
+		camera.setBrightness(brightness);
+	}
+
 	// Run thread to read and feed camera images. Called by Thread.start().
+	
 	public void run()
 	{
 		Util.consoleLog();
+		
+		if (!initialized) return;
 		
 		try
 		{
@@ -104,7 +156,7 @@ public class CameraFeed extends Thread
 
 			while (!isInterrupted())
 			{
-				UpdateCameraImage();
+				if (!changingCamera) UpdateCameraImage();
 		
 				Timer.delay(1 / frameRate);
 			}
@@ -116,31 +168,38 @@ public class CameraFeed extends Thread
 	 * Get last image read from camera.
 	 * @return Mat Last image from camera.
 	 */
-	public Mat CurrentImage()
+	public Mat getCurrentImage()
 	{
 		Util.consoleLog();
 		
-		return image;
+	    synchronized (this) 
+	    {
+	    	return image;
+	    }
 	}
 	
 	/**
-	 * Stop image feed, ie close camera stream stop feed thread.
+	 * Stop image feed, ie close cameras stop feed thread, release the
+	 * singleton cameraFeed object.
 	 */
 	public void EndFeed()
 	{
+		if (!initialized) return;
+
 		try
 		{
     		Util.consoleLog();
 
     		Thread.currentThread().interrupt();
     		
-    		cam1.stopCapture();
     		cam1.free();
-    		//cam2.stopCapture();
-    		//cam2.free();
+    		cam2.free();
     		
     		currentCamera = cam1 = cam2 =  null;
-    		server = null;
+
+    		mjpegServer = null;
+	
+    		cameraFeed = null;
 		}
 		catch (Throwable e)	{Util.logException(e);}
 	}
@@ -151,29 +210,40 @@ public class CameraFeed extends Thread
 	public void ChangeCamera()
     {
 		Util.consoleLog();
-
-		currentCamera.stopCapture();
 		
-		if (currentCamera.equals(cam1))
-			currentCamera = cam2;
-		else
+		if (!initialized) return;
+		
+		changingCamera = true;
+		
+		if (currentCamera == null || currentCamera.equals(cam2))
 			currentCamera = cam1;
+		else
+			currentCamera = cam2;
+
+		Util.consoleLog("current=%s", currentCamera.getName());
 		
-		currentCamera.startCapture();
+	    synchronized (this) 
+	    {
+	    	imageSource.setSource(currentCamera);
+	    }
+	    
+	    changingCamera = false;
+	    
+	    Util.consoleLog("end");
     }
     
 	// Get an image from current camera and give it to the server.
-    private void UpdateCameraImage()
+    
+	private void UpdateCameraImage()
     {
-    	try
-    	{
-    		if (currentCamera != null)
-    		{	
-    			image = currentCamera.getImage();
-    				
-            	imageOutputStream.putFrame(image);
-    		}
+		if (currentCamera != null)
+		{	
+		    synchronized (this) 
+		    {
+		    	imageSource.grabFrame(image);
+		    	
+		    	imageOutputStream.putFrame(image);
+		    }
 		}
-		catch (Throwable e) {Util.logException(e);}
     }
 }

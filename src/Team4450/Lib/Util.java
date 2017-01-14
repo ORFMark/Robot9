@@ -295,7 +295,8 @@ public class Util
 	 */
 	public static void logException(Throwable e)
 	{
-		DriverStation.reportError(e.getMessage(), false);
+		DriverStation.reportError(e.toString(), false);
+		
 		e.printStackTrace(Util.logPrintStream);
 	}
 

@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.Properties;
 
 import Team4450.Lib.*;
-
 import edu.wpi.first.wpilibj.AnalogGyro;
 import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
@@ -19,6 +18,7 @@ import edu.wpi.first.wpilibj.SampleRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.Talon;
+
 import com.ctre.*;
 import com.ctre.CANTalon.*;
 
@@ -31,7 +31,7 @@ import com.ctre.CANTalon.*;
 
 public class Robot extends SampleRobot 
 {
-  static final String  	PROGRAM_NAME = "RAC9-01.09.17-01";
+  static final String  	PROGRAM_NAME = "RAC9-01.13.17-03";
 
   // Motor CAN ID/PWM port assignments (1=left-front, 2=left-rear, 3=right-front, 4=right-rear)
   CANTalon				LFCanTalon, LRCanTalon, RFCanTalon, RRCanTalon, LSlaveCanTalon, RSlaveCanTalon;
@@ -63,8 +63,8 @@ public class Robot extends SampleRobot
     
   // IP addresses of systems hosting robot camera MJpeg stream.
   
-  static final String  	CAMERA_IP = "10.44.50.21"; 				// Seans surface IP
-  //static final String  	CAMERA_IP = "10.44.50.22";				// RoboRio IP
+  //static final String  	CAMERA_IP = "10.44.50.21"; 				// Seans surface IP
+  static final String  	CAMERA_IP = "10.44.50.22";				// RoboRio IP
   //static final String  	CAMERA_IP = "roborio-4450-frc.local";	// RoboRio mDNS name
   
   static final int	   	USB_CAMERA = 2;
@@ -200,7 +200,7 @@ public class Robot extends SampleRobot
       
    		Util.listCameras();
    		
-   		StartUSBCameraServer("cam0", 0);
+   		//StartUSBCameraServer("cam0", 0);
       
    		// Start the battery, compressor, camera feed and distance monitoring Tasks.
 
@@ -217,8 +217,8 @@ public class Robot extends SampleRobot
    		// feeding images to Grip and Grip provides an MJpeg image stream to the DS.
    		// If we run Grip on Seans surface, we use his IP for the MJpeg stream.
       
-   		//cameraThread = CameraFeed.getInstance(this, isComp); 
-   		//cameraThread.start();
+   		cameraThread = CameraFeed.getInstance(isComp); 
+   		cameraThread.start();
 
    		// Start Grip and suspend it when running it on the RoboRio.
         //Grip.suspendGrip(true)
