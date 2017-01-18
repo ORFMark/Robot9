@@ -33,8 +33,8 @@ public class CameraFeed extends Thread
 	private boolean				changingCamera;
 
 	// Camera settings - Static
-	public static final int 	width = 640;
-	public static final int 	height = 480;
+	public static final int 	width = 320; //640;
+	public static final int 	height = 240; //480;
 	//public static final double 	fovH = 48.0;
 	//public static final double 	fovV = 32.0;
 	public static final	double	frameRate = 20;		// frames per second

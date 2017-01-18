@@ -3,6 +3,9 @@ package Team4450.Robot9;
 
 import java.lang.Math;
 
+import org.opencv.core.Rect;
+import org.opencv.imgproc.Imgproc;
+
 import Team4450.Lib.*;
 import Team4450.Lib.JoyStick.*;
 import Team4450.Lib.LaunchPad.*;
@@ -29,6 +32,7 @@ class Teleop
 	private final Shooter		shooter;
 	private double				shooterPower;
 	private Relay				headLight = new Relay(0, Relay.Direction.kForward);
+	private GripPipeline		gripPipeline = new GripPipeline();
 	//private final RevDigitBoard	revBoard = RevDigitBoard.getInstance();
 	//private final DigitalInput	hallEffectSensorDigital = new DigitalInput(9);
 	//private final AnalogInput	hallEffectSensorAnalog = new AnalogInput(3);
@@ -534,6 +538,87 @@ class Teleop
 			{
 				SmartDashboard.putBoolean("TargetLocked", true);
 				contour = null;
+			}
+		}
+		
+		//Grip.suspendGrip(true);	// Only needed when Grip on the RoboRio.
+		autoTarget = false;
+		robot.robotDrive.setSafetyEnabled(true);
+		SmartDashboard.putBoolean("AutoTarget", autoTarget);
+	}
+
+	/**
+	 * Loops checking camera images for target. Stops when no target found.
+	 * If target found, check target X location and if needed bump the bot
+	 * in the appropriate direction and then check target location again.
+	 * Uses GRIP based vision code running as a standalone program either
+	 * on the RoboRio or Raspberry Pi or a PC.
+	 */
+	void seekTargetGrip2()
+	{
+		int				targetOffset, imageCenter = CameraFeed.width / 2, centerX;
+		Rect			targetRectangle;
+		
+		// Since the turret camera is incorrectly mounted and points a bit left of 
+		// turrent centerline, when we line up the target with the camera centerline
+		// the turret is actually pointing right of the target. So we use this value
+		// to adjust the turret position to correct this problem. Note that this will
+		// make the DS camera centerline to be left of center when we are lined up.
+		// This is number of pixels to tweak the location of the target centerline.
+		// + value adjusts turret right, - value adjusts left.
+		final int		CAMERA_ADJUST = 0;
+		
+		Util.consoleLog();
+		
+		autoTarget = true;
+
+		//Grip.suspendGrip(false);	// Only needed when Grip on RoboRio.
+		
+		SmartDashboard.putBoolean("TargetLocked", false);
+		SmartDashboard.putBoolean("AutoTarget", autoTarget);
+
+		gripPipeline.process(robot.cameraThread.getCurrentImage());
+		
+		targetRectangle = Imgproc.boundingRect(gripPipeline.findContoursOutput().get(0));
+
+		robot.robotDrive.setSafetyEnabled(false);
+		
+		while (robot.isEnabled() && autoTarget && targetRectangle != null)
+		{
+			centerX = targetRectangle.x + (64 / 2);
+
+			Util.consoleLog("x=%d y=%d c=%d h=%d w=%d",targetRectangle.x, targetRectangle.y, centerX, targetRectangle.height,
+					         targetRectangle.width);
+
+			// Image is Grip.IMAGE_WIDTH pixels wide. 5px target zone.
+			// targetOffset is number of pixels from center of image to the center
+			// of the target in the image. A countour is information about the location
+			// of the target in the image. centerX is target center offset from the left
+			// edge of the image, ie. zero.
+			
+			targetOffset = imageCenter - (centerX + CAMERA_ADJUST);
+					
+			if (Math.abs(targetOffset) > 5)
+			{
+				// targetOffset will be + if target left of center, - if right of center.
+
+				bumpTurret2(targetOffset);
+				
+				// Wait for Grip to process an image after bump movement stops.
+				// Grip takes about .50-.75sec to process an image and return data.
+				// Grip development environment will tell you how much time it takes
+				// to process an image on the development PC.
+				
+				Timer.delay(.50);	
+
+				gripPipeline.process(robot.cameraThread.getCurrentImage());
+				
+				targetRectangle = Imgproc.boundingRect(gripPipeline.findContoursOutput().get(0));
+			}
+			else
+			{
+				SmartDashboard.putBoolean("TargetLocked", true);
+				targetRectangle = null;
 			}
 		}
 		
