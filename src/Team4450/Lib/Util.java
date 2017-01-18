@@ -1,6 +1,7 @@
 
 package Team4450.Lib;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -21,19 +22,38 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 
+import edu.wpi.cscore.UsbCamera;
+import edu.wpi.cscore.UsbCameraInfo;
+import edu.wpi.first.wpilibj.CameraServer;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.can.CANJNI;
 
 public class Util
 {
-	// PrintStream that writes to our logging system.
+	/**
+	 * Open print stream that writes to the log file. Example of use:
+	 * exception.printStackTrace(Util.logPrintStream);
+	 */
 	public static final PrintStream	logPrintStream = new PrintStream(new LoggingOutputStream());
 
-	// Logging class for use by other classes to log through our custom logging scheme. All
-	// logging should be done by calls to methods on this class instance.
+	/**
+	 * Logging class for use by other classes to log though this custom logging scheme. All
+	 * logging should be done by calls to methods on this class instance or with the 
+	 * convenience methods of the Util class.
+	 */
 	public final static Logger logger = Logger.getGlobal();
-
-	// Read our properties file from RoboRio memory.
 	
+	// Private constructor means this class cannot be instantiated. All access is static.
+	
+	private Util()
+	{
+		
+	}
+	
+	/**
+	 * Read properties file from RobRio disk into a Properties object.
+	 * @return A Properties object.
+	 */
 	public static Properties readProperties() throws IOException
 	{
 		consoleLog();
@@ -52,15 +72,20 @@ public class Util
 		return props;
 	}
 	
-	// Configures and holds (static) classes for our custom logging.
-	
+	/**
+	 * Configures and holds (static) classes for our custom logging system. 
+	 * Call setup() method to initialize logging.
+	 */
 	public static class CustomLogger 
 	{
         static private FileHandler 		fileTxt;
         //static private SimpleFormatter	formatterTxt;
         static private LogFormatter		logFormatter;
         
-        // Initialize our logging system.
+        /**
+         *  Initializes our logging system.
+         *  Call before using any logging methods.
+         */
         static public void setup() throws IOException 
         {
             // get the global logger to configure it and add a file handler.
@@ -93,8 +118,11 @@ public class Util
             
             //if (true) throw new IOException("Test Exception");
             
-            fileTxt = new FileHandler("/home/lvuser/Logging.txt");
-
+            if (new File("/home/lvuser/Logging.txt.99").exists() != true)
+            	fileTxt = new FileHandler("/home/lvuser/Logging.txt");
+            else
+            	throw new IOException("Max number of log files reached.");
+            
             fileTxt.setFormatter(logFormatter);
 
             logger.addHandler(fileTxt);
@@ -105,25 +133,24 @@ public class Util
 	
 	private static class LogFormatter extends Formatter 
 	{
+        SimpleDateFormat dateFormat = new SimpleDateFormat("hh:mm:ss:S");
+        
+        public LogFormatter()
+        {
+            dateFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
+        }
+
         public String format(LogRecord rec) 
         {
             StringBuffer buf = new StringBuffer(1024);
             
-            buf.append(String.format("<%d>", rec.getThreadID())); //Thread.currentThread().getId()));
-            buf.append(formatDate(rec.getMillis()));
+            buf.append(String.format("<%d>", rec.getThreadID()));
+            buf.append(dateFormat.format(new Date(rec.getMillis())));
             buf.append(" ");
             buf.append(formatMessage(rec));
             buf.append("\n");
         
             return buf.toString();
-        }
-        
-        private String formatDate(long millisecs) 
-        {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("hh:mm:ss:S");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("America/Los_Angeles"));
-            Date resultDate = new Date(millisecs);
-            return dateFormat.format(resultDate);
         }
 	}
 	
@@ -243,8 +270,8 @@ public class Util
     
     /**
      * Write message to console log with optional formatting and program location.
-     * @param message message with optional format specifiers for listed parameters
-     * @param parms parameter list matching format specifiers
+     * @param message Message with optional format specifiers for listed parameters.
+     * @param parms Parameter list matching format specifiers.
      */
 	public static void consoleLog(String message, Object... parms)
 	{
@@ -259,6 +286,18 @@ public class Util
 	{
 		// logs to the console as well as our log file on RR disk.
 		logger.log(Level.INFO, String.format("robot: %s", currentMethod(2)));
+	}
+
+	/**
+	 * Write exception message to console window and exception stack trace to
+	 * log file.
+	 * @param e The exception to log.
+	 */
+	public static void logException(Throwable e)
+	{
+		DriverStation.reportError(e.toString(), false);
+		
+		e.printStackTrace(Util.logPrintStream);
 	}
 
 	/** helper routine to get last received message for a given ID */
@@ -277,7 +316,7 @@ public class Util
 			timeStamp.order(ByteOrder.LITTLE_ENDIAN);
 			timeStamp.asIntBuffer().put(0,0x00000000);
 			
-			CANJNI.FRCNetworkCommunicationCANSessionMuxReceiveMessage(targetID.asIntBuffer(), 0x1fffffff, timeStamp);
+			CANJNI.FRCNetCommCANSessionMuxReceiveMessage(targetID.asIntBuffer(), 0x1fffffff, timeStamp);
 		
 			long retval = timeStamp.getInt();
 			
@@ -313,7 +352,7 @@ public class Util
 		try 
 		{
 			Thread.sleep(200);
-		} catch (InterruptedException e) {e.printStackTrace(logPrintStream);}
+		} catch (InterruptedException e) {Util.logException(e);}
 
 		/* get timestamp1 for each device */
 		long pdp0_timeStamp1; // only look for PDP at '0'
@@ -321,6 +360,7 @@ public class Util
 		long []srx_timeStamp1 = new long[63];
 		
 		pdp0_timeStamp1 = checkMessage(0x08041400,0);
+		
 		
 		for(int i = 0; i < 63; ++i) 
 		{
@@ -342,5 +382,21 @@ public class Util
 		}
 		
 		return retval;
+	}
+	
+	/**
+	 * Write a list of usb cameras known to the RoboRio to the log.
+	 */
+	public static void listCameras()
+	{
+		UsbCameraInfo	cameraInfo, cameraList[];
+		
+		cameraList = UsbCamera.enumerateUsbCameras();
+		
+		for(int i = 0; i < cameraList.length; ++i) 
+		{
+			cameraInfo = cameraList[i];
+			Util.consoleLog("dev=%d name=%s path=%s", cameraInfo.dev, cameraInfo.name, cameraInfo.path);
+		}
 	}
 }
